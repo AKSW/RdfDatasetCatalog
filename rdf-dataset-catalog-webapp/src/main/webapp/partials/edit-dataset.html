@@ -1,0 +1,181 @@
+<form name="datasetForm" novalidate>
+    <div class="row">
+
+        <div class="col-md-12">
+        
+            <div class="container-fluid">
+
+                <div class="row">
+                
+                    <div class="col-md-6">
+                        <hr />
+                        <h3>Register a new Dataset</h3>
+                    
+                         <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">Name</span>
+                                <input name="nameInput" ng-model="desc.name" type="text" class="form-control" placeholder="Dataset Name" required>
+                            </div>
+                            {{datasetForm}}
+                        </div>
+    <!--                     <div class="form-group"> -->
+    <!--                         <div class="input-group"> -->
+    <!--                             <span class="input-group-addon">UUID</span> -->
+    <!--                             <input type="text" class="form-control" placeholder="Dataset UUID (optional)"> -->
+    <!--                         </div> -->
+    <!--                     </div> -->
+    
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+        
+    <div class="row">
+    
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <hr />
+            <h4>Downloads</h4>
+            <ul class="media-list">
+                <li class="media" ng-if="desc.downloads.length === 0">
+                    <div class="media-body">
+                        <span style="color:grey"><i>No downloads specified</i></span>
+                    </div>
+                </li>
+                <li class="media" ng-repeat="download in desc.downloads" ng-controller="ArmDeleteCtrl">
+                    <div class="media-body">                                
+    
+                        <div class="input-group">
+    
+                            <input title="{{download.url}}" ng-model="download.url" type="text" class="form-control" type="url" required></input>
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>
+                                <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloads, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
+                                <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloads.length-1)" ng-click="swapArrayItems(desc.downloads, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
+                                <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloads, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
+                            </span>
+    
+    <!--                         <div> -->
+    <!--                             <span class="error" ng-show="download.url.$error.required">Required!</span> -->
+    <!--                             <span class="error" ng-show="download.url.$error.url">Invalid URL format!</span> -->
+    <!--                         </div> -->
+    
+                        </div>
+                    </div>
+                 </li>
+             </ul>
+             <button class="btn btn-large btn-primary" ng-click="desc.downloads.push({url: 'http://'})"><span class="glyphicon glyphicon-plus"></span> Add Download</button>
+    
+        </div>
+        
+        
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <hr />
+            <h4>Sparql Endpoints</h4>                             
+            
+            <ul class="media-list">
+                <li class="media" ng-if="desc.sparqlEndpoints.length === 0">
+                    <div class="media-body">
+                        <span style="color:grey"><i>No sparql endpoints specified</i></span>
+                    </div>
+                </li>                                
+                <li class="media" ng-repeat="sparqlEndpoint in desc.sparqlEndpoints track by $index" ng-controller="ArmDeleteCtrl">                                
+                    <div class="media-body">
+                    <!-- style="border-left-style: dashed; border-left-width: 1px; border-color: grey;"  -->
+                        <div class="input-group">                                
+                             <input ng-model="sparqlEndpoint.url" type="text" class="form-control"></input>
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>
+        
+                                 <button ng-show="showAll" class="btn" ng-if="$index > 0" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
+                                 <button ng-show="showAll" class="btn" ng-if="$index < (desc.sparqlEndpoints.length-1)" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
+                                <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.sparqlEndpoints, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
+        
+        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloads, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button> -->
+        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloads.length-1)" ng-click="swapArrayItems(desc.downloads, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button> -->
+        <!--                         <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloads, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>                                                 -->
+                            </span>
+                        </div>
+    
+                        <ul class="media-list" style="margin-left: 16px">
+                            <li class="media" ng-show="sparqlEndpoint.defaultGraphs.length===0">
+                                <div class="media-body">
+                                    <span style="color:grey"><i>No default graphs specified</i></span>
+                                </div>
+                            </li>
+                        
+                            <li class="media" ng-repeat="defaultGraph in sparqlEndpoint.defaultGraphs track by $index">
+                                <div class="media-body">
+                        
+                                     <input ng-model="sparqlEndpoint.defaultGraphs[$index]" type="text" class="form-control"></input>
+                                     <!--  ng-focus="sparqlEndpoint.focusIndex=$index" custom-autofocus="sparqlEndpoint.focusIndex==$index" -->
+        <!--                             <button class="btn btn-large btn-primary" ng-click="desc.sparqlEndpoints.push({defaultGraphs: []})"><span class="glyphicon glyphicon-plus"></span> Add Sparql Endpoint</button>                         -->
+                                </div>
+                            </li>
+                        </ul>
+                        <button class="pull-right btn btn-large btn-info" ng-click="sparqlEndpoint.defaultGraphs.push('http://')"><span class="glyphicon glyphicon-plus"></span> Add Default Graph</button>
+                        
+                    </div>
+                    <hr />
+                 </li>
+             </ul>
+            <button class="btn btn-large btn-primary" ng-click="desc.sparqlEndpoints.push({url: 'http://', defaultGraphs: []})"><span class="glyphicon glyphicon-plus"></span> Add Sparql Endpoint</button>
+    
+        </div>
+    
+    
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <hr />
+            <h4>Containment</h4>
+            To be done...
+    
+    <!--                                 <label></i>I claim that the enumeration is complete and exact</i> <input type="checkbox" ng-model="desc.containment.isExact"></label> -->
+    
+    <!--                                 <ul> -->
+    <!--                                     <li ng-repeat="items in desc.containment.items" ng-controller="ArmDeleteCtrl">                 -->
+    <!--                                          <input ng-model="item.url" type="text" class="form-control"></input> -->
+    <!--                                          <a class="btn" ng-class="{'alert alert-danger': isDeleteArmed}" ng-click="remove(desc.containment.items, $index)"><span class="glyphicon glyphicon-remove-circle"></span></a> -->
+    <!--                                          <a class="btn" ng-if="$index > 0" ng-click="swapArrayItems(desc.containment.items, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></a> -->
+    <!--                                          <a class="btn" ng-if="$index < (desc.containment.items.length-1)" ng-click="swapArrayItems(desc.containment.items, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></a> -->
+    <!--                                      </li> -->
+    <!--                                  </ul> -->
+    <!--                                 <button class="btn btn-large btn-primary" ng-click="desc.containment.items.push({})"><span class="glyphicon glyphicon-plus"></span> Add Containment Record</button>                                 -->
+    
+        </div>
+    
+    
+        <div class="col-xs-12 col-sm-6 col-md-3"> <!-- style="border-style: solid; border-width: 1px; border-color: black" -->
+            <hr />
+            <h4>Relations</h4>
+            <ul class="media-list">
+                <li class="media" ng-if="desc.relations.length === 0">
+                    <div class="media-body">
+                        <span style="color:grey"><i>No relations specified</i></span>
+                    </div>
+                </li>                                
+                <li class="media" ng-repeat="relation in desc.relations" ng-controller="ArmDeleteCtrl">
+                    <div class="media-body">
+                         <input ng-model="relation.type" type="text" class="form-control"></input>
+                         <input ng-model="relation.target" type="text" class="form-control"></input>
+                         <a class="btn" ng-class="{'alert alert-danger': isDeleteArmed}" ng-click="remove(desc.relations, $index)"><span class="glyphicon glyphicon-remove-circle"></span></a>
+                         <a class="btn" ng-if="$index > 0" ng-click="swapArrayItems(desc.relations, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></a>
+                         <a class="btn" ng-if="$index < (desc.relations.length-1)" ng-click="swapArrayItems(desc.relations, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></a>
+                     </div>
+                 </li>
+             </ul>
+             
+             <button class="btn btn-large btn-primary" ng-click="desc.relations.push({})"><span class="glyphicon glyphicon-plus"></span> Add Relation</button>
+        </div>                            
+    </div>
+    
+    <div class="row">
+        <hr />
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-success" ng-click="store(desc)">Save</button>
+            <button class="btn btn-default">Cancel</button>
+        </div>
+    </div>                        
+        
+
+</form>

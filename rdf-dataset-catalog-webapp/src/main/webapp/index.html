@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html ng-app="RdfDatasetCatalog">
+
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <title>RDF Dataset Catalog</title>
+	
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <!-- build:css(.tmp) styles/main.css -->
+
+    <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="bower_components/jassa-ui-angular/jassa-ui-angular.css" />
+    <link rel="stylesheet" href="bower_components/jassa-ui-angular-openlayers/jassa-ui-angular-openlayers.css" />
+    <!-- endbower -->
+
+	<link rel="stylesheet" href="bower_components/ng-grid-bower/ng-grid.css" />
+
+    <link rel="stylesheet" href="styles/rdf-dataset-catalog-style.css" />
+
+    <!-- endbuild -->
+
+	
+    <!-- build:js scripts/scripts.js -->
+
+    <script src="bower_components/jscache/cache.js"></script>
+
+    <!-- bower:js -->
+    <script src="bower_components/jquery/jquery.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/jassa/jassa.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/ng-grid-bower/ng-grid.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <script src="bower_components/jassa-ui-angular/jassa-ui-angular-tpls.js"></script>
+    <script src="bower_components/jquery-ui/ui/jquery-ui.js"></script>
+    <script src="bower_components/jassa-ui-angular-openlayers/jassa-ui-angular-openlayers-tpls.js"></script>
+    <script src="bower_components/angular-ui-router/release/angular-ui-router.js"></script>
+    <!-- endbower -->
+
+
+
+	<script src="scripts/lib/ng-grid-flexible-height/ng-grid-flexible-height.js"></script>
+
+    <script src="scripts/lib/angular-ui/0.10.0/ui-bootstrap-tpls-0.10.0.js"></script>
+    <script src="bower_components/underscore.string/lib/underscore.string.js"></script>
+    <script src="bower_components/openlayers/lib/OpenLayers.js"></script>
+
+    <!-- endbuild -->
+
+<!--    <script src="js/jassa-ui-angular-geo-openlayers-tpls.js"></script> -->
+	
+	<script type="text/javascript">
+    _.mixin(_.str.exports());
+
+	var rdf = Jassa.rdf;
+	var sparql = Jassa.sparql;
+    var service = Jassa.service;
+	var sponate = Jassa.sponate;
+    var facete = Jassa.facete;
+	var geo = Jassa.geo;
+	var util = Jassa.util;
+	
+	var client = Jassa.client;
+
+	
+	var applyScope = function($scope) {
+	    if(!$scope.$$phase) {
+	        $scope.$apply();
+	    }
+	};
+	
+    angular.module('RdfDatasetCatalog', ['ui.router', 'ui.bootstrap', 'ui.jassa', 'ngGrid', 'ui.jassa.openlayers', 'ngSanitize'])
+
+    
+    .config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider) {
+        $urlRouterProvider.otherwise("/state1");
+
+        //
+        // Now set up the states
+        $stateProvider
+        
+		.state('state1', {
+		    url: "/state1",
+		    templateUrl: "partials/edit-dataset.html"
+		  })
+		.state('state1.list', {
+		    url: "/list",
+		    templateUrl: "partials/state1.list.html",
+		    controller: function($scope) {
+		        $scope.items = ["A", "List", "Of", "Items"];
+		    }
+		})
+		.state('state2', {
+		    url: "/state2",
+		    templateUrl: "partials/state2.html"
+		  })
+		.state('state2.list', {
+		    url: "/list",
+		    templateUrl: "partials/state2.list.html",
+		    controller: function($scope) {
+		        $scope.things = ["A", "Set", "Of", "Things"];
+		    }
+		})
+    }])        
+    
+    .filter('reverse', function() {
+		return function(items) {
+			return items.slice().reverse();
+		};
+	})
+    
+	.directive('customAutofocus', function() {
+        return {
+            restrict: 'A',
+
+            link: function(scope, element, attrs) {
+                var expr = function() {
+                    return scope.$eval(attrs.customAutofocus);
+                };
+ 
+                scope.$watch(expr, function(newValue) {
+                    console.log('dammit');
+                    if(newValue == true){
+                        element[0].focus(); //use focus function instead of autofocus attribute to avoid cross browser problem. And autofocus should only be used to mark an element to be focused when page loads.
+                    }
+  	            });
+	        }
+	    };
+	})
+	
+    .controller('AppCtrl', ['$scope', function($scope) {
+
+        $scope.datasetForm = {};
+
+        
+        $scope.notifications = [];
+        
+        $scope.swapArrayItems = function(arr, i, j) {
+            var tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        };
+    }])
+    
+    .controller('EditDatasetCtrl', ['$scope', function($scope) {
+        $scope.desc = {
+            recordId: '',
+            recordLabel: '',
+            recordComment: '',            
+            sparqlEndpoints: [],
+            downloads: [],
+            relations: [],
+            containment: {
+                isExact: true,
+                items: []
+            }
+        };
+        
+        $scope.store = function(data) {
+
+            
+            data.label = 'test';
+            data.comment = 'foobar';
+            
+            data.downloadLocations = [ 'http://foo.org/bar', 'http://foo.org/baz' 
+				//{uri: 'http://foo.org/bar'},
+				//{uri: 'http://foo.org/baz'}
+			];
+            
+            var dataStr = JSON.stringify(data);
+            //alert('Data: ' + dataStr);
+                        
+            var storeApiUrl = '/api/store';
+            
+            
+            var spec = {
+                url: storeApiUrl + '/put',
+                type: 'POST',
+                data: {
+                    data: dataStr,
+                },
+                traditional: true,
+                dataType: 'json'
+            };
+            
+            jQuery.ajax(spec)
+            .done(function(data) {
+                alert(dataStr);
+            })
+            .fail(function() {
+                alert('Fail');
+            })
+            .then(function() {
+                applyScope($scope);
+            });
+            
+            
+        }
+    }])
+    
+    .controller('ArmDeleteCtrl', ['$scope', function($scope) {
+        
+        $scope.isDeleteArmed = false;
+        
+        $scope.remove = function(arr, index) {
+            if($scope.isDeleteArmed) {
+                arr.splice(index, 1);
+            }
+            else {
+                $scope.isDeleteArmed = true;
+                setTimeout(function() {
+                    $scope.isDeleteArmed = false;
+                    
+                    applyScope($scope);
+               }, 1500);
+            }
+            
+        };
+    }])
+    
+    ;
+    
+    </script>
+
+</head>
+
+<body ng-controller="AppCtrl">
+
+	<nav class="navbar navbar-default" role="navigation">
+		<div class="container-fluid">
+			<!-- Brand and toggle get grouped for better mobile display -->
+   			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				
+				<a class="navbar-brand" style="padding: 3px 15px;" href="#"><img style="height: 42px;" src="images/logo-eccenca-plain.png" alt=""></img></a>
+				<a class="navbar-brand" href="#">RDF Dataset Catalog</a>
+			</div>
+
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				 <form class="navbar-form navbar-left" role="search">
+	        		<div class="form-group">
+	        			<div class="input-group">
+		          			<input type="text" ng-model="app.searchString" class="form-control" placeholder="Find Dataset...">
+		          			<span class="input-group-btn">
+		        				<button type="submit" class="btn btn-default" ng-click="doSearch(app.searchString)">Submit</button>
+		          			</span>
+		          		</div>	          			
+	        		</div>
+				</form>
+
+				<ul class="nav nav-pills navbar-nav navbar-right">
+					<li class="dropdown" ng-class="{'active': (notifications.length > 0)}">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown">Notifications <span class="badge">{{notifications.length}}</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li ng-if="!(notifications.length > 0)">(empty list)</li>
+							<li ng-repeat="item in notifications | reverse">
+							</li>
+						</ul>
+					</li>
+				</ul>
+
+			</div>
+
+		</div>
+	</nav>
+	
+	
+    <a ui-sref="state1">State 1</a>
+    <a ui-sref="state2">State 2</a>	
+	
+	<div class="container" ng-controller="EditDatasetCtrl">
+		<div ui-view></div>
+	</div>
+					
+
+
+</body>
+
+</html>
+
