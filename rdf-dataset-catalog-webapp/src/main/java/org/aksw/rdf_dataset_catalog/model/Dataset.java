@@ -36,10 +36,12 @@ public class Dataset
 	private String primaryIri; // Leave empty for non authorative datasets
 	// TODO What if someone hijacks the an iri such as http://dbpedia.org/????
 
-	@ManyToOne
+	
+	// TODO Ensure that persisting a dataset object cannot create a new user.
+	@ManyToOne(optional=false, cascade=CascadeType.REFRESH)
 	private User owner;
 
-	//private String pri
+
 	
     //@ElementCollection
     //@OrderColumn(name="sequence_id")

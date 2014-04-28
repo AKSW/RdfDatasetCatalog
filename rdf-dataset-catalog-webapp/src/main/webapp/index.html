@@ -154,7 +154,7 @@
             recordLabel: '',
             recordComment: '',            
             sparqlEndpoints: [],
-            downloads: [],
+            downloadLocations: [],
             relations: [],
             containment: {
                 isExact: true,
@@ -168,10 +168,10 @@
             data.label = 'test';
             data.comment = 'foobar';
             
-            data.downloadLocations = [ 'http://foo.org/bar', 'http://foo.org/baz' 
+            //data.downloadLocations = [ 'http://foo.org/bar', 'http://foo.org/baz' 
 				//{uri: 'http://foo.org/bar'},
 				//{uri: 'http://foo.org/baz'}
-			];
+			//];
             
             var dataStr = JSON.stringify(data);
             //alert('Data: ' + dataStr);

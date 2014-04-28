@@ -38,34 +38,34 @@
             <hr />
             <h4>Downloads</h4>
             <ul class="media-list">
-                <li class="media" ng-if="desc.downloads.length === 0">
+                <li class="media" ng-if="desc.downloadLocations.length === 0">
                     <div class="media-body">
-                        <span style="color:grey"><i>No downloads specified</i></span>
+                        <span style="color:grey"><i>No downloadLocations specified</i></span>
                     </div>
                 </li>
-                <li class="media" ng-repeat="download in desc.downloads" ng-controller="ArmDeleteCtrl">
+                <li class="media" ng-repeat="downloadLocation in desc.downloadLocations track by $index" ng-controller="ArmDeleteCtrl">
                     <div class="media-body">                                
     
                         <div class="input-group">
     
-                            <input title="{{download.url}}" ng-model="download.url" type="text" class="form-control" type="url" required></input>
+                            <input title="{{downloadLocation}}" ng-model="desc.downloadLocations[$index]" type="text" class="form-control" type="url" required></input>
                             <span class="input-group-btn">
                                 <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>
-                                <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloads, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
-                                <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloads.length-1)" ng-click="swapArrayItems(desc.downloads, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
-                                <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloads, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
+                                <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloadLocations, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
+                                <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloadLocations.length-1)" ng-click="swapArrayItems(desc.downloadLocations, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
+                                <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloadLocations, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
                             </span>
     
     <!--                         <div> -->
-    <!--                             <span class="error" ng-show="download.url.$error.required">Required!</span> -->
-    <!--                             <span class="error" ng-show="download.url.$error.url">Invalid URL format!</span> -->
+    <!--                             <span class="error" ng-show="downloadLocation.url.$error.required">Required!</span> -->
+    <!--                             <span class="error" ng-show="downloadLocation.url.$error.url">Invalid URL format!</span> -->
     <!--                         </div> -->
     
                         </div>
                     </div>
                  </li>
              </ul>
-             <button class="btn btn-large btn-primary" ng-click="desc.downloads.push({url: 'http://'})"><span class="glyphicon glyphicon-plus"></span> Add Download</button>
+             <button class="btn btn-large btn-primary" ng-click="desc.downloadLocations.push('http://')"><span class="glyphicon glyphicon-plus"></span> Add Download</button>
     
         </div>
         
@@ -84,17 +84,16 @@
                     <div class="media-body">
                     <!-- style="border-left-style: dashed; border-left-width: 1px; border-color: grey;"  -->
                         <div class="input-group">                                
-                             <input ng-model="sparqlEndpoint.url" type="text" class="form-control"></input>
+                            <input ng-model="sparqlEndpoint.url" type="text" class="form-control"></input>
                             <span class="input-group-btn">
-                                <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>
-        
-                                 <button ng-show="showAll" class="btn" ng-if="$index > 0" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
-                                 <button ng-show="showAll" class="btn" ng-if="$index < (desc.sparqlEndpoints.length-1)" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
+                                <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>        
+                                <button ng-show="showAll" class="btn" ng-if="$index > 0" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
+                                <button ng-show="showAll" class="btn" ng-if="$index < (desc.sparqlEndpoints.length-1)" ng-click="swapArrayItems(desc.sparqlEndpoints, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
                                 <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.sparqlEndpoints, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
         
-        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloads, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button> -->
-        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloads.length-1)" ng-click="swapArrayItems(desc.downloads, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button> -->
-        <!--                         <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloads, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>                                                 -->
+        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index > 0" ng-click="swapArrayItems(desc.downloadLocations, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button> -->
+        <!--                          <button ng-show="showAll" class="btn btn-default" ng-if="$index < (desc.downloadLocations.length-1)" ng-click="swapArrayItems(desc.downloadLocations, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button> -->
+        <!--                         <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(desc.downloadLocations, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>                                                 -->
                             </span>
                         </div>
     
@@ -105,10 +104,17 @@
                                 </div>
                             </li>
                         
-                            <li class="media" ng-repeat="defaultGraph in sparqlEndpoint.defaultGraphs track by $index">
+                            <li class="media" ng-repeat="defaultGraph in sparqlEndpoint.defaultGraphs track by $index" ng-controller="ArmDeleteCtrl">
                                 <div class="media-body">
-                        
-                                     <input ng-model="sparqlEndpoint.defaultGraphs[$index]" type="text" class="form-control"></input>
+                                    <div class="input-group">                                
+                                        <input ng-model="sparqlEndpoint.defaultGraphs[$index]" type="text" class="form-control"></input>
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default" ng-click="showAll=!showAll"><span class="glyphicon" ng-class="{'glyphicon-chevron-left': !showAll, 'glyphicon-chevron-right': showAll}"></span></button>        
+                                            <button ng-show="showAll" class="btn" ng-if="$index > 0" ng-click="swapArrayItems(sparqlEndpoint.defaultGraphs, $index, $index-1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-up"></span></button>
+                                            <button ng-show="showAll" class="btn" ng-if="$index < (sparqlEndpoint.defaultGraphs.length-1)" ng-click="swapArrayItems(sparqlEndpoint.defaultGraphs, $index, $index+1)"><span class="glyphicon glyphicon glyphicon-circle-arrow-down"></span></button>
+                                            <button ng-show="showAll" class="btn" ng-class="{'btn-danger': isDeleteArmed, 'btn-default': !isDeleteArmed}" ng-click="remove(sparqlEndpoint.defaultGraphs, $index)"><span class="glyphicon glyphicon-remove-circle"></span></button>
+                                        </span>
+                                    </div>                                     
                                      <!--  ng-focus="sparqlEndpoint.focusIndex=$index" custom-autofocus="sparqlEndpoint.focusIndex==$index" -->
         <!--                             <button class="btn btn-large btn-primary" ng-click="desc.sparqlEndpoints.push({defaultGraphs: []})"><span class="glyphicon glyphicon-plus"></span> Add Sparql Endpoint</button>                         -->
                                 </div>
