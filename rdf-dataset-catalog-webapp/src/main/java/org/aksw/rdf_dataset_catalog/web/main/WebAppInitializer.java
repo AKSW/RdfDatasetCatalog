@@ -10,6 +10,7 @@ import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.request.RequestContextListener;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.filter.DelegatingFilterProxy;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.tuckey.web.filters.urlrewrite.UrlRewriteFilter;
 
@@ -32,18 +33,23 @@ public class WebAppInitializer
 		servletContext.addListener(new RequestContextListener());
 
 		{
+            FilterRegistration.Dynamic fr = servletContext.addFilter("springSecurityFilterChain", new DelegatingFilterProxy());
+            fr.addMappingForUrlPatterns(null, true, "/*");
+        }
+
+		{
 		    FilterRegistration.Dynamic fr = servletContext.addFilter("CorsFilter", new CorsFilter());
 		    fr.addMappingForUrlPatterns(null, true, "/*");
         //  fr.setInitParameter("dispatcher", "REQUEST");
 		}
-		
-	    {
+
+        {
             FilterRegistration.Dynamic fr = servletContext.addFilter("UrlRewriteFilter", new UrlRewriteFilter());
             fr.setInitParameter("dispatcher", "REQUEST");
             fr.setInitParameter("dispatcher", "FORWARD");
             fr.addMappingForUrlPatterns(null, true, "/*");
-	    }
-
+        }
+	    
 		
 		// Create the dispatcher servlet's Spring application context
 		AnnotationConfigWebApplicationContext dispatcherContext = new AnnotationConfigWebApplicationContext();

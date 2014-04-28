@@ -1,20 +1,30 @@
 package org.aksw.rdf_dataset_catalog.model;
 
-import java.util.Date;
+import java.util.Collection;
+import java.util.Collections;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 @Entity
-public class User {
+public class UserInfo
+    implements UserDetails
+{
+
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    @Column(unique=true, nullable=false)
+    private String username;
     
+    @Column(nullable=false)
     private String passwordSalt;
     private String passwordHash;
 
@@ -30,12 +40,13 @@ public class User {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public String getUsername() {
+        return username;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPasswordSalt() {
@@ -59,7 +70,7 @@ public class User {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((username == null) ? 0 : username.hashCode());
         result = prime * result
                 + ((passwordHash == null) ? 0 : passwordHash.hashCode());
         result = prime * result
@@ -75,16 +86,16 @@ public class User {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        User other = (User) obj;
+        UserInfo other = (UserInfo) obj;
         if (id == null) {
             if (other.id != null)
                 return false;
         } else if (!id.equals(other.id))
             return false;
-        if (name == null) {
-            if (other.name != null)
+        if (username == null) {
+            if (other.username != null)
                 return false;
-        } else if (!name.equals(other.name))
+        } else if (!username.equals(other.username))
             return false;
         if (passwordHash == null) {
             if (other.passwordHash != null)
@@ -101,8 +112,40 @@ public class User {
 
     @Override
     public String toString() {
-        return "User [id=" + id + ", name=" + name + ", passwordSalt="
+        return "User [id=" + id + ", name=" + username + ", passwordSalt="
                 + passwordSalt + ", passwordHash=" + passwordHash + "]";
+    }
+
+    
+    
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public String getPassword() {
+        return this.passwordHash;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
     
     

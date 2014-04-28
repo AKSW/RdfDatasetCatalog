@@ -22,6 +22,41 @@
 
     <link rel="stylesheet" href="styles/rdf-dataset-catalog-style.css" />
 
+    <style>
+    .login-labels: {
+        width: 300px;
+    }
+    
+    .login-fields: {
+        width: 200px;
+    }
+/* 	.bs-sidebar.affix { */
+/* 	  width: 263px; */
+/* 	  top: 25px; */
+/* 	} */
+		
+/* 	@media (min-width: 768px) { */
+/* 	  .bs-sidebar.affix { */
+/* 	    width: 158px; */
+/* 	    top: 25px; */
+/* 	  } */
+/* 	} */
+	
+/* 	@media (min-width: 992px) { */
+/* 	  .bs-sidebar.affix { */
+/* 	    width: 213px; */
+/* 	    position: fixed; */
+/* 	    top: 25px; */
+/* 	  } */
+/* 	} */
+	
+/* 	@media (min-width: 1200px) { */
+/* 	  .bs-sidebar.affix { */
+/* 	    width: 263px; */
+/* 	  } */
+/* 	}     */
+    </style>
+
     <!-- endbuild -->
 
 	
@@ -69,6 +104,9 @@
 	var client = Jassa.client;
 
 	
+    var storeApiUrl = '/api/store';
+
+	
 	var applyScope = function($scope) {
 	    if(!$scope.$$phase) {
 	        $scope.$apply();
@@ -77,18 +115,87 @@
 	
     angular.module('RdfDatasetCatalog', ['ui.router', 'ui.bootstrap', 'ui.jassa', 'ngGrid', 'ui.jassa.openlayers', 'ngSanitize'])
 
+    .config([function() {
+        // Setup drop down menu
+        jQuery('.dropdown-toggle').dropdown();
+       
+        // Fix input element click problem
+        jQuery('.dropdown input, .dropdown label').click(function(e) {
+          e.stopPropagation();
+        });        
+    }])
     
     .config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider) {
-        $urlRouterProvider.otherwise("/state1");
+        $urlRouterProvider.otherwise("/overview");
 
         //
         // Now set up the states
         $stateProvider
+
+        .state('overview', {
+            url: "/overview",
+            templateUrl: "partials/overview.html",
+            controller: function($scope) {
+
+                var jassa = Jassa;                
+                var sparqlService = new jassa.service.SparqlServiceHttp('/api/sparql', []);
+                //sparqlService = new jassa.service.SparqlServiceCache(sparqlServiceCore);
+
+        var prefixes = {
+            'o': 'http://dcat.cc/ontology/',
+            'r': 'http://dcat.cc/resource/',
+            'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+            'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+            'owl': 'http://www.w3.org/2002/07/owl#',
+            'dcat': 'http://www.w3.org/ns/dcat#'
+        };
+
+        var labelMap = jassa.sponate.SponateUtils.createDefaultLabelMap();
         
-		.state('state1', {
-		    url: "/state1",
+        var store = new sponate.StoreFacade(sparqlService, prefixes);
+        
+        store.addMap(labelMap, 'labels');                
+                
+                $scope.search = {text: ''};
+                
+                $scope.$watch('search.text', function(val) {
+                    $scope.refreshResults(val); 
+                });
+                
+                
+                $scope.requestId = 1;
+                
+                $scope.refreshResults = function(re) {
+                    var requestId = ++$scope.requestId;
+
+                    if(!re || re === '') {
+                        $scope.items = [];
+                        return;
+                    }
+                    
+                    //var re = 'DB';
+                    //var concept = 
+                    var promise = store.labels.find({$or: [{id: {$regex: re}}, {hiddenLabels: {$elemMatch: {id: {$regex: re}}}}]}).asList(true);
+                    
+                    promise.done(function(data) {
+                        if(requestId != $scope.requestId) {
+                            return;
+                        }
+                        
+                        $scope.items = data;
+                        console.log(data);
+                        applyScope($scope);
+                    });
+                    
+                }
+                
+                $scope.refreshResults();
+            }
+        })
+		.state('register-dataset', {
+		    url: "/register-dataset",
 		    templateUrl: "partials/edit-dataset.html"
-		  })
+		})
 		.state('state1.list', {
 		    url: "/list",
 		    templateUrl: "partials/state1.list.html",
@@ -135,7 +242,7 @@
 	})
 	
     .controller('AppCtrl', ['$scope', function($scope) {
-
+        
         $scope.datasetForm = {};
 
         
@@ -146,9 +253,40 @@
             arr[i] = arr[j];
             arr[j] = tmp;
         };
+        
+        
+        
+        $scope.registerAndLogIn = function() {
+            var spec = {
+		        url: storeApiUrl + '/registerUser',
+		        type: 'POST',
+		        data: {
+		            username: 'foobarack',
+		            password: 'somehash',
+		            email: 'somemail'
+		        },
+		        traditional: true,
+		        dataType: 'json'
+		    };
+		    
+		    jQuery.ajax(spec)
+		    .done(function(data) {
+		        alert(JSON.stringify(data));
+		    })
+		    .fail(function() {
+		        alert('Fail');
+		    })
+		    .then(function() {
+		        applyScope($scope);
+		    });
+		    
+        };
+        
     }])
     
     .controller('EditDatasetCtrl', ['$scope', function($scope) {
+        $scope.editMode = false;
+        
         $scope.desc = {
             recordId: '',
             recordLabel: '',
@@ -176,7 +314,6 @@
             var dataStr = JSON.stringify(data);
             //alert('Data: ' + dataStr);
                         
-            var storeApiUrl = '/api/store';
             
             
             var spec = {
@@ -243,30 +380,61 @@
 					<span class="icon-bar"></span>
 				</button>
 				
-				<a class="navbar-brand" style="padding: 3px 15px;" href="#"><img style="height: 42px;" src="images/logo-eccenca-plain.png" alt=""></img></a>
-				<a class="navbar-brand" href="#">RDF Dataset Catalog</a>
+				<a class="navbar-brand" style="padding: 3px 15px;" href="#"><img style="height: 42px; transform: rotate(180deg);" src="images/logo-datacat.png" alt=""></img></a>
+				<a class="navbar-brand" href="#"><span style="color: #ab3479">RDF</span> <span style="color: #df752c">Data</span>set <span style="color: #7db442">Cat</span>alog</a>
 			</div>
 
 			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-				 <form class="navbar-form navbar-left" role="search">
-	        		<div class="form-group">
-	        			<div class="input-group">
-		          			<input type="text" ng-model="app.searchString" class="form-control" placeholder="Find Dataset...">
-		          			<span class="input-group-btn">
-		        				<button type="submit" class="btn btn-default" ng-click="doSearch(app.searchString)">Submit</button>
-		          			</span>
-		          		</div>	          			
-	        		</div>
-				</form>
+<!-- 				 <form class="navbar-form navbar-left" role="search"> -->
+<!-- 	        		<div class="form-group"> -->
+<!-- 	        			<div class="input-group"> -->
+<!-- 		          			<input type="text" ng-model="app.searchString" class="form-control" placeholder="Find Dataset..."> -->
+<!-- 		          			<span class="input-group-btn"> -->
+<!-- 		        				<button type="submit" class="btn btn-default" ng-click="doSearch(app.searchString)">Submit</button> -->
+<!-- 		          			</span> -->
+<!-- 		          		</div>	          			 -->
+<!-- 	        		</div> -->
+<!-- 				</form> -->
+
+                <ul class="nav nav-pills navbar-nav">
+                    <li class="active"><a ui-sref="overview">Overview</a></li>
+		            <li><a ui-sref="register-dataset">Register a Dataset</a></li>
+		            <li><a ui-sref="state2">Browse</a></li>
+                    <li><a ui-sref="state2">FAQ</a></li>
+                    <li><a ui-sref="state2">About</a></li>
+                </ul>		
 
 				<ul class="nav nav-pills navbar-nav navbar-right">
-					<li class="dropdown" ng-class="{'active': (notifications.length > 0)}">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown">Notifications <span class="badge">{{notifications.length}}</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu">
-							<li ng-if="!(notifications.length > 0)">(empty list)</li>
-							<li ng-repeat="item in notifications | reverse">
-							</li>
-						</ul>
+					<li class="dropdown">
+					   <a href="#" class="dropdown-toggle" data-toggle="dropdown">Login <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                                                        <form action="">
+                                                                <table>
+<!--                                                                     <colgroup> -->
+<!--                                                                         <col style="width: 150px"> -->
+<!--                                                                     </colgroup> -->
+                                                                    <tbody>
+                                                                        <tr><td class="login-labels">Username:</td><td class="login-fields"><input id="login-username" type="text" size="30" /></td><td class="login-fields"><span id="login-username-msg"></span></td></tr>
+                                                                        <tr><td>Password:</td><td><input type="password" size="30" /></td><td><span id="login-password-msg"></span></td></tr>
+                                                                        <tr><td><hr /></td><td><button type="submit" class="btn btn-primary" value="logIn" style="width: 100%">Log In</button></td></tr>
+                                                                    </tbody>
+                                                                </table>
+                                                        </form>
+                                                        <form action="">
+                                                                <table>
+<!--                                                                     <colgroup> -->
+<!--                                                                         <col style="width: 150px"> -->
+<!--                                                                     </colgroup> -->
+                                                                    <tbody>
+                                                                        <tr><td class="login-labels">Confirm Password:</td><td class="login-fields"><input id="register-passwordConfirm" type="password" /></td><td class="login-fields"><span id="register-passwordConfirm-msg"></span></td></tr>
+                                                                        <tr><td>Email</td><td><input id="register-email" type="text" /></td><td><span id="register-email-msg"></span></td></tr>
+                                                                        <tr><td>Confirm Email:</td><td><input id="register-emailConfirm" type="text" /></td><td><span id="register-emailConfirm-msg"></span></td></tr>
+                                                                        <tr><td><hr /></td><td><button id="registerAndLogIn" type="submit" class="btn btn-primary" ng-click="registerAndLogIn()" style="width: 100%">Register &amp; Log In</button></td></tr>                                                                    
+                                                                    </tbody>
+                                                                </table>
+                                                        </form>
+                                <button class="btn btn-primary" ng-click="registerAndLogIn()">Oh fuck the old code....</button>
+                        </ul>
 					</li>
 				</ul>
 
@@ -274,16 +442,29 @@
 
 		</div>
 	</nav>
-	
-	
-    <a ui-sref="state1">State 1</a>
-    <a ui-sref="state2">State 2</a>	
-	
-	<div class="container" ng-controller="EditDatasetCtrl">
-		<div ui-view></div>
-	</div>
-					
 
+<!--     <div class="container"> -->
+<!--         <div class="row"> -->
+<!--             <div class="col-sm-3"> -->
+<!--                 <div class="well bs-sidebar affix">			 -->
+<!-- 				    <ul class="nav nav-pills nav-stacked"> -->
+<!-- 				        <li class="active"><a ui-sref="state1">State 1</a></li> -->
+<!-- 				        <li><a ui-sref="state2">State 2</a></li> -->
+<!-- 				        <li><a href="#">Messages</a></li> -->
+<!-- 				    </ul> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+<!-- 			<div class="col-sm-9"> -->
+<!--                 <div class="container" ng-controller="EditDatasetCtrl">  -->
+<!--                     <div ui-view></div> -->
+<!--                 </div> -->
+<!-- 			</div> -->
+<!--         </div> -->
+<!--     </div>		 -->
+
+    <div class="container" ng-controller="EditDatasetCtrl"> 
+        <div ui-view></div>
+    </div>
 
 </body>
 

@@ -1,0 +1,78 @@
+<div class="row">
+
+    <div class="col-md-12">
+    
+        <div class="container-fluid">
+
+            <div class="row">
+            
+                <div class="col-md-6">
+
+                    <h3>Find a Dataset</h3>
+                
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon">Name</span>
+                            <input name="datasetInput" ng-model="search.text" type="text" class="form-control" placeholder="Dataset Name" required>
+                        </div>
+
+                    </div>
+                    <ul>
+                        <li ng-repeat="item in items">{{item}}</li>
+                    </ul>
+<!--                     <div class="form-group"> -->
+<!--                         <div class="input-group"> -->
+<!--                             <span class="input-group-addon">UUID</span> -->
+<!--                             <input type="text" class="form-control" placeholder="Dataset UUID (optional)"> -->
+<!--                         </div> -->
+<!--                     </div> -->
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <hr />
+
+    <div class="row">
+        <div class="col-md-3">
+            <h2>What is it?</h2>
+            <p>
+                This is a simple minimal registry for RDF datasets, where you can specify respective download and Sparql endpoint locations.
+<!--                 <ol> -->
+<!--                     <li>The record's name</li> -->
+<!--                     <li>A comment</li> -->
+<!--                     <li>Download locations for the dataset (if applicable).</li> -->
+<!--                     <li>Sparql endpoint locations for the dataset (if applicable).</li> -->
+<!--                     <li>Relations to other dataset records, such as 'isVoidDescriptionOf', 'isDCatDescriptionOf', ... -->
+<!--                 </ol>  -->
+<!--                 You can provide lists for download locations and Sparql endpoints, which denote alternative locations for the first entry. -->
+<!--                 Clients can use this information for fail-over. Please note that all provided locations should contain <b>exactly</b> the same data. -->
+            </p>
+        </div>
+
+        <div class="col-md-3">
+            <h2>What is it NOT?</h2>
+            <p>
+                This is not a generic dataset repository where you can add arbitrary data and describe them in detail.
+            </p>
+        </div>
+        
+        <div class="col-md-3">
+            <h2>Why?</h2>
+            <p>
+                To provide a high quality repository for RDF datasets together with <i>references</i> to where to get the actual data and respective meta data.
+                Clients can then discover the datasets and their relations by querying the <a href="api/sparql">Sparql Endpoint</a>.                
+            </p>
+        </div>
+        
+        <div class="col-md-3">
+            <h2>How?</h2>
+            <p>
+                Want to share an RDF dataset hosted as a download and/or in a SPARQL endpoint? <a ui-sref="register-dataset">Register it here!</a> 
+                If applicable, add relations to other datasets, such as 'isVoidDescriptionOf'. 
+            </p>
+        </div>        
+    </div>
+</div>

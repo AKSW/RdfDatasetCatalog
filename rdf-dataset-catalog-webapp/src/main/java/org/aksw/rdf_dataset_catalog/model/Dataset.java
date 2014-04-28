@@ -39,7 +39,7 @@ public class Dataset
 	
 	// TODO Ensure that persisting a dataset object cannot create a new user.
 	@ManyToOne(optional=false, cascade=CascadeType.REFRESH)
-	private User owner;
+	private UserInfo owner;
 
 
 	
@@ -112,12 +112,12 @@ public class Dataset
     }
 
 
-    public User getOwner() {
+    public UserInfo getOwner() {
         return owner;
     }
 
 
-    public void setOwner(User owner) {
+    public void setOwner(UserInfo owner) {
         this.owner = owner;
     }
 
