@@ -25,8 +25,7 @@ public class UserInfo
     private String username;
     
     @Column(nullable=false)
-    private String passwordSalt;
-    private String passwordHash;
+    private String password;
 
     // TODO The underlying DB should most likely set the date automatically as well
     //private Date registrationDate = new Date();
@@ -49,32 +48,25 @@ public class UserInfo
         this.username = username;
     }
 
-    public String getPasswordSalt() {
-        return passwordSalt;
+    @Override
+    public String getPassword() {
+        return this.password;
     }
-
-    public void setPasswordSalt(String passwordSalt) {
-        this.passwordSalt = passwordSalt;
+   
+    public void setPassword(String password) {
+        this.password = password;
     }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
+    
+    
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((username == null) ? 0 : username.hashCode());
         result = prime * result
-                + ((passwordHash == null) ? 0 : passwordHash.hashCode());
+                + ((password == null) ? 0 : password.hashCode());
         result = prime * result
-                + ((passwordSalt == null) ? 0 : passwordSalt.hashCode());
+                + ((username == null) ? 0 : username.hashCode());
         return result;
     }
 
@@ -92,41 +84,30 @@ public class UserInfo
                 return false;
         } else if (!id.equals(other.id))
             return false;
+        if (password == null) {
+            if (other.password != null)
+                return false;
+        } else if (!password.equals(other.password))
+            return false;
         if (username == null) {
             if (other.username != null)
                 return false;
         } else if (!username.equals(other.username))
             return false;
-        if (passwordHash == null) {
-            if (other.passwordHash != null)
-                return false;
-        } else if (!passwordHash.equals(other.passwordHash))
-            return false;
-        if (passwordSalt == null) {
-            if (other.passwordSalt != null)
-                return false;
-        } else if (!passwordSalt.equals(other.passwordSalt))
-            return false;
         return true;
     }
-
+    
     @Override
     public String toString() {
-        return "User [id=" + id + ", name=" + username + ", passwordSalt="
-                + passwordSalt + ", passwordHash=" + passwordHash + "]";
+        return "UserInfo [id=" + id + ", username=" + username + ", password="
+                + password + "]";
     }
 
-    
-    
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptySet();
     }
 
-    @Override
-    public String getPassword() {
-        return this.passwordHash;
-    }
 
     @Override
     public boolean isAccountNonExpired() {

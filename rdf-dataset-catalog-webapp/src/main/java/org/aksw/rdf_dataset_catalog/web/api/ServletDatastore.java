@@ -11,6 +11,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.aksw.rdf_dataset_catalog.model.Dataset;
 import org.aksw.rdf_dataset_catalog.model.UserInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,9 @@ public class ServletDatastore
 	}
 
 	
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	
 	/**
 	 * Note: NEVER send the password in plain text - send a hash instead (and if possible, use HTTPS)
 	 * 
@@ -47,10 +52,11 @@ public class ServletDatastore
 	@POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registerUser")
-    public String registerUser(@FormParam("username") String username, @FormParam("password") String password, @FormParam("email") String email) {
+    public String registerUser(@FormParam("username") String username, @FormParam("password") String rawPassword, @FormParam("email") String email) {
 	    UserInfo userInfo = new UserInfo();
 	    userInfo.setUsername(username);
-	    userInfo.setPasswordHash(password);
+	    String encodedPassword = passwordEncoder.encode(rawPassword);
+	    userInfo.setPassword(encodedPassword);
 	    //userInfo.setEmail(email);
 	    
 	    em.persist(userInfo);

@@ -206,7 +206,7 @@
 		.state('state2', {
 		    url: "/state2",
 		    templateUrl: "partials/state2.html"
-		  })
+		 })
 		.state('state2.list', {
 		    url: "/list",
 		    templateUrl: "partials/state2.list.html",
@@ -214,6 +214,10 @@
 		        $scope.things = ["A", "Set", "Of", "Things"];
 		    }
 		})
+        .state('about', {
+            url: "/about",
+            templateUrl: "partials/about.html"
+        })
     }])        
     
     .filter('reverse', function() {
@@ -261,8 +265,8 @@
 		        url: storeApiUrl + '/registerUser',
 		        type: 'POST',
 		        data: {
-		            username: 'foobarack',
-		            password: 'somehash',
+		            username: 'foobar',
+		            password: 'pw',
 		            email: 'somemail'
 		        },
 		        traditional: true,
@@ -401,7 +405,7 @@
 		            <li><a ui-sref="register-dataset">Register a Dataset</a></li>
 		            <li><a ui-sref="state2">Browse</a></li>
                     <li><a ui-sref="state2">FAQ</a></li>
-                    <li><a ui-sref="state2">About</a></li>
+                    <li><a ui-sref="about">About</a></li>
                 </ul>		
 
 				<ul class="nav nav-pills navbar-nav navbar-right">
