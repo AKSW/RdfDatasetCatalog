@@ -6,7 +6,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -15,6 +14,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
+
 
 @Entity
 public class Dataset
@@ -27,10 +27,20 @@ public class Dataset
 	// TODO: How can we reference dataset records in other services?????
 	// We need to be able to say: This dataset record originates from some other service - so we need a provenance record
 
-	// The combination of Namespace and name must be unique (i.e. each dataset record resides in a user space)
+	//private Group group;
+	
+	// The combination of namespace, name version must be unique (i.e. each dataset record resides in a user space)
+	@Column(nullable=false)
 	private String name;
 
+	// Version should follow the maven format
+	@Column(nullable=false)
+	private String version;
+	
+	
+	
 	// The basic comment associated with the dataset
+	@Column(nullable=false)
 	private String comment;
 	
 	private String primaryIri; // Leave empty for non authorative datasets

@@ -247,6 +247,8 @@
 	
     .controller('AppCtrl', ['$scope', function($scope) {
         
+        $scope.account = {};
+        
         $scope.datasetForm = {};
 
         
@@ -258,16 +260,80 @@
             arr[j] = tmp;
         };
         
+        $scope.checkSession = function() {
+            var spec = {
+	            url: storeApiUrl + '/checkSession',
+	            type: 'POST',
+	            data: {},
+	            traditional: true,
+	            dataType: 'json'
+            };
+
+            jQuery.ajax(spec)
+            .done(function(data) {
+                $scope.account.username = data.username;
+            })
+            .fail(function() {
+                alert('Failed to get session state');
+            })
+            .then(function() {
+                applyScope($scope);
+            });            
+        };
+
+        $scope.checkSession();
         
+        $scope.logOut = function() {
+            var spec = {
+	            url: storeApiUrl + '/logOut',
+	            type: 'POST',
+            };
+
+            jQuery.ajax(spec)
+            .done(function() {
+            })
+            .fail(function() {
+                alert('Failed to log out');
+            })
+            .then(function() {
+                $scope.account.username = null;
+                applyScope($scope);
+            });
+        };
         
-        $scope.registerAndLogIn = function() {
+        $scope.logIn = function(credentials) {
+            var spec = {
+	            url: storeApiUrl + '/logIn',
+	            type: 'POST',
+	            data: {
+	                username: credentials.username,
+	                password: credentials.password
+	            },
+	            traditional: true,
+	            dataType: 'json'
+            };
+
+            jQuery.ajax(spec)
+            .done(function(data) {
+                $scope.account.username = data.username;
+            })
+            .fail(function() {
+                alert('Fail');
+            })
+            .then(function() {
+                applyScope($scope);
+            });
+                        
+        };
+        
+        $scope.registerAndLogIn = function(credentials) {
             var spec = {
 		        url: storeApiUrl + '/registerUser',
 		        type: 'POST',
 		        data: {
-		            username: 'foobar',
-		            password: 'pw',
-		            email: 'somemail'
+		            username: credentials.username,
+		            password: credentials.password,
+		            email: credentials.email
 		        },
 		        traditional: true,
 		        dataType: 'json'
@@ -275,13 +341,16 @@
 		    
 		    jQuery.ajax(spec)
 		    .done(function(data) {
-		        alert(JSON.stringify(data));
+                $scope.account.name = data.name;
+                applyScope($scope);
 		    })
 		    .fail(function() {
 		        alert('Fail');
 		    })
 		    .then(function() {
 		        applyScope($scope);
+		        
+		        $scope.checkSession();
 		    });
 		    
         };
@@ -293,6 +362,9 @@
         
         $scope.desc = {
             recordId: '',
+            name: '',
+            version: '',
+            comment: '',
             recordLabel: '',
             recordComment: '',            
             sparqlEndpoints: [],
@@ -307,8 +379,8 @@
         $scope.store = function(data) {
 
             
-            data.label = 'test';
-            data.comment = 'foobar';
+            //data.label = 'test';
+            //data.comment = 'foobar';
             
             //data.downloadLocations = [ 'http://foo.org/bar', 'http://foo.org/baz' 
 				//{uri: 'http://foo.org/bar'},
@@ -409,37 +481,55 @@
                 </ul>		
 
 				<ul class="nav nav-pills navbar-nav navbar-right">
-					<li class="dropdown">
-					   <a href="#" class="dropdown-toggle" data-toggle="dropdown">Login <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                                                        <form action="">
-                                                                <table>
-<!--                                                                     <colgroup> -->
-<!--                                                                         <col style="width: 150px"> -->
-<!--                                                                     </colgroup> -->
-                                                                    <tbody>
-                                                                        <tr><td class="login-labels">Username:</td><td class="login-fields"><input id="login-username" type="text" size="30" /></td><td class="login-fields"><span id="login-username-msg"></span></td></tr>
-                                                                        <tr><td>Password:</td><td><input type="password" size="30" /></td><td><span id="login-password-msg"></span></td></tr>
-                                                                        <tr><td><hr /></td><td><button type="submit" class="btn btn-primary" value="logIn" style="width: 100%">Log In</button></td></tr>
-                                                                    </tbody>
-                                                                </table>
-                                                        </form>
-                                                        <form action="">
-                                                                <table>
-<!--                                                                     <colgroup> -->
-<!--                                                                         <col style="width: 150px"> -->
-<!--                                                                     </colgroup> -->
-                                                                    <tbody>
-                                                                        <tr><td class="login-labels">Confirm Password:</td><td class="login-fields"><input id="register-passwordConfirm" type="password" /></td><td class="login-fields"><span id="register-passwordConfirm-msg"></span></td></tr>
-                                                                        <tr><td>Email</td><td><input id="register-email" type="text" /></td><td><span id="register-email-msg"></span></td></tr>
-                                                                        <tr><td>Confirm Email:</td><td><input id="register-emailConfirm" type="text" /></td><td><span id="register-emailConfirm-msg"></span></td></tr>
-                                                                        <tr><td><hr /></td><td><button id="registerAndLogIn" type="submit" class="btn btn-primary" ng-click="registerAndLogIn()" style="width: 100%">Register &amp; Log In</button></td></tr>                                                                    
-                                                                    </tbody>
-                                                                </table>
-                                                        </form>
-                                <button class="btn btn-primary" ng-click="registerAndLogIn()">Oh fuck the old code....</button>
-                        </ul>
-					</li>
+				    <li ng-show="account.username">
+                        Hello, {{account.username}}! <a href="" ng-click="logOut()"><b>Logout</b></a>
+				    </li>
+					<li ng-show="!account.username" class="dropdown">
+					    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Login <b class="caret"></b></a>
+                        <div class="dropdown-menu" style="width: 300px; padding: 15px; padding-bottom: 0px;">
+							<form action="">
+							    <div class="form-group">
+							        <div class="input-group">
+<!-- 							            <span class="input-group-addon">Username</span> -->
+							            <input ng-model="login.username" type="text" class="form-control" placeholder="Username" required>
+							        </div>
+                                </div>
+                                <div class="form-group">
+									<div class="input-group">
+<!-- 									    <span class="input-group-addon">Password</span> -->
+									    <input ng-model="login.password" type="text" class="form-control" placeholder="Password" required>
+									</div>
+							    </div>
+                                <div class="form-group">
+                                    <button ng-click="logIn(login)" type="submit" class="btn btn-primary" value="logIn" style="width: 100%">Log In</button>
+                                </div>
+							</form>
+							<form action="">
+								<div class="form-group">
+								    <div class="input-group">
+<!-- 								        <span class="input-group-addon">Confirm Password:</span> -->
+								        <input ng-model="login.confirmPassword" type="text" class="form-control" placeholder="Confirm Password" required>
+								    </div>
+								                      </div>
+								                      <div class="form-group">
+								    <div class="input-group">
+<!-- 								        <span class="input-group-addon">Email</span> -->
+								        <input ng-model="login.email" type="text" class="form-control" placeholder="Email" required>
+								    </div>
+								 </div>
+								 <div class="form-group">
+								    <div class="input-group">
+<!-- 								        <span class="input-group-addon">Email</span> -->
+								        <input ng-model="login.confirmEmail" type="text" class="form-control" placeholder="Confirm Email" required>
+								    </div>
+								 </div>
+								 <div class="form-group">
+								        <button ng-click="registerAndLogIn(login)" type="submit" class="btn btn-primary" value="logIn" style="width: 100%">Register & Log In</button>
+								 </div>                          
+							</form>
+                        </div>
+
+                    </li>
 				</ul>
 
 			</div>

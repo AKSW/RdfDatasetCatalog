@@ -27,6 +27,10 @@ public class UserInfo
     @Column(nullable=false)
     private String password;
 
+    @Column(unique=true, nullable=false)
+    private String email;
+    
+    
     // TODO The underlying DB should most likely set the date automatically as well
     //private Date registrationDate = new Date();
     //private List<Dataset> datasets;
@@ -56,12 +60,21 @@ public class UserInfo
     public void setPassword(String password) {
         this.password = password;
     }
+   
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
     
     
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((email == null) ? 0 : email.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
         result = prime * result
                 + ((password == null) ? 0 : password.hashCode());
@@ -79,6 +92,11 @@ public class UserInfo
         if (getClass() != obj.getClass())
             return false;
         UserInfo other = (UserInfo) obj;
+        if (email == null) {
+            if (other.email != null)
+                return false;
+        } else if (!email.equals(other.email))
+            return false;
         if (id == null) {
             if (other.id != null)
                 return false;
@@ -100,7 +118,7 @@ public class UserInfo
     @Override
     public String toString() {
         return "UserInfo [id=" + id + ", username=" + username + ", password="
-                + password + "]";
+                + password + ", email=" + email + "]";
     }
 
     @Override
