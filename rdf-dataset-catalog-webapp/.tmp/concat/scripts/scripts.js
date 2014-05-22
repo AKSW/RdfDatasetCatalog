@@ -9817,6 +9817,32 @@ module['exports'] = Jassa;
       return result;
     }
   });
+  /**
+	 * Note: this is a read only collection
+	 * 
+	 */
+  ns.NestedList = Class.create({
+    classLabel: 'jassa.util.NestedList',
+    initialize: function () {
+      this.subLists = [];
+    },
+    getArray: function () {
+      // tmp is an array of arrays
+      var tmp = _(this.subLists).each(function (subList) {
+          return subList.getArray();
+        });
+      var result = _(tmp).flatten(true);
+      return result;
+    },
+    contains: function (item) {
+      var found = _(this.subLists).find(function (subList) {
+          var r = subList.contains(item);
+          return r;
+        });
+      var result = !!found;
+      return result;
+    }
+  });
   ns.ArrayList = Class.create({
     initialize: function (fnEquals) {
       this.items = [];
@@ -9870,6 +9896,9 @@ module['exports'] = Jassa;
     },
     removeByIndex: function (index) {
       this.items.splice(index, 1);
+    },
+    size: function () {
+      return this.items.length;
     }
   });
   ns.CollectionUtils = {
@@ -11052,6 +11081,79 @@ module['exports'] = Jassa;
 	 * This alias for the Node object between the rdf and sparql namespace exists for legacy reasons.
 	 */
   ns.Node = Jassa.rdf.Node;
+  ns.PrefixMappingImpl = Class.create({
+    initialize: function (prefixes) {
+      this.prefixes = prefixes ? prefixes : {};
+    },
+    expandPrefix: function (prefixed) {
+      throw 'Not implemented yet - sorry';
+    },
+    getNsPrefixMap: function () {
+      return this.prefixes;
+    },
+    getNsPrefixURI: function (prefix) {
+      return this.prefixes[prefix];
+    },
+    getNsURIPrefix: function (uri) {
+      var result = null;
+      var bestNs = null;
+      _(this.prefixes).each(function (u, prefix) {
+        if (_(uri).startsWith(u)) {
+          if (!bestNs || u.length > bestNs.length) {
+            result = prefix;
+            bestNs = u;
+          }
+        }
+      });
+      return result;
+    },
+    qnameFor: function (uri) {
+    },
+    removeNsPrefix: function (prefix) {
+      delete this.prefixes[prefix];
+    },
+    samePrefixMappingAs: function (other) {
+      throw 'Not implemented yet - Sorry';
+    },
+    setNsPrefix: function (prefix, uri) {
+      this.prefixes[prefix] = uri;
+      return this;
+    },
+    setNsPrefixes: function (obj) {
+      var json = _(obj.getNsPrefixMap).isFunction() ? obj.getNsPrefixMap() : obj;
+      var self = this;
+      _(json).each(function (uri, prefix) {
+        self.setNsPrefix(prefix, uri);
+      });
+      return this;
+    },
+    shortForm: function (uri) {
+      var prefix = this.getNsPrefixURI(uri);
+      var result;
+      if (prefix) {
+        var u = this.prefixes[u];
+        var qname = uri.substring(u.length);
+        result = prefix + ':' + qname;
+      } else {
+        result = uri;
+      }
+      return resul;
+      t;
+    },
+    addPrefix: function (prefix, urlBase) {
+      this.prefixes[prefix] = urlBase;
+    },
+    getPrefix: function (prefix) {
+      var result = this.prefixes[prefix];
+      return result;
+    },
+    addJson: function (json) {
+      _.extend(this.prefixes, json);
+    },
+    getJson: function () {
+      return this.prefixes;
+    }
+  });
 }());
 (function () {
   var rdf = Jassa.rdf;
@@ -11751,7 +11853,16 @@ module['exports'] = Jassa;
       return new ns.NodeValue.createLiteral(val, xsd.str.xfloat);
     },
     makeNode: function (node) {
-      return new ns.NodeValueNode(node);
+      var result = new ns.NodeValueNode(node);
+      return result;  /*
+		    var result;
+		    if(node.isVariable()) {
+		        return new ns.ExprVar(node);
+ 		    } else {
+ 		        result = new ns.NodeValueNode(node);
+ 		    }
+		    return result;
+		    */
     }  //		makeFloat: function(val) {
        //			return new ns.NodeValueFloat(val);
        //		}
@@ -11899,6 +12010,7 @@ module['exports'] = Jassa;
 (function () {
   var rdf = Jassa.rdf;
   var xsd = Jassa.vocab.xsd;
+  var util = Jassa.util;
   var ns = Jassa.sparql;
   //var strings = Namespace("org.aksw.ssb.utils.strings");
   //var strings = require('underscore.strings');
@@ -12568,6 +12680,7 @@ module['exports'] = Jassa;
   //		return result;
   //	};
   //	
+  // http://jena.apache.org/documentation/javadoc/arq/com/hp/hpl/jena/sparql/core/VarExprList.html
   ns.VarExprList = Class.create({
     classLabel: 'jassa.sparql.VarExprList',
     initialize: function () {
@@ -12577,22 +12690,41 @@ module['exports'] = Jassa;
     getVarList: function () {
       return this.vars;
     },
+    getVars: function () {
+      return this.vars;
+    },
     getExprMap: function () {
       return this.varToExpr;
     },
     add: function (v, expr) {
+      if (this.contains(v)) {
+        console.log('VarExprList already contained ' + v);
+        throw 'Bailing out';
+      }
       this.vars.push(v);
       if (expr) {
         this.varToExpr[v.getName()] = expr;
       }
+    },
+    contains: function (v) {
+      var result = _(this.vars).some(function (item) {
+          var r = v.equals(item);
+          return r;
+        });
+      return result;
     },
     getExpr: function (v) {
       var varName = v.getName();
       var result = this.varToExpr[varName];
       return result;
     },
-    addAll: function (vars) {
-      this.vars.push.apply(this.vars, vars);
+    addAll: function (varExprList) {
+      var vs = varExprList.getVars();
+      var self = this;
+      _(vs).each(function (v) {
+        var expr = varExprList.getExpr(v);
+        self.add(v, expr);
+      });
     },
     entries: function () {
       var self = this;
@@ -12674,7 +12806,8 @@ module['exports'] = Jassa;
       // select, construct, ask, describe
       this.distinct = false;
       this.reduced = false;
-      this._isResultStar = false;
+      this.resultStar = false;
+      // TODO Rename to project(ion)
       this.projectVars = new ns.VarExprList();
       //this.projectVars = []; // The list of variables to appear in the projection
       //this.projectExprs = {}; // A map from variable to an expression
@@ -12688,19 +12821,30 @@ module['exports'] = Jassa;
       this.offset = null;
     },
     isResultStar: function () {
-      return this._isResultStar;
+      return this.resultStar;
     },
-    setResultStar: function (_isResultStar) {
-      this._isResultStar = _isResultStar;
+    setResultStar: function (enable) {
+      this.resultStar = enable === true ? true : false;
+    },
+    getQueryPattern: function () {
+      return this.elements[0];
+    },
+    setQueryPattern: function (element) {
+      util.ArrayUtils.clear(this.elements);
+      this.elements.push(element);
     },
     getElements: function () {
       return this.elements;
     },
     getProjectVars: function () {
-      return this.projectVars;
+      var result = this.projectVars ? this.projectVars.getVars() : null;
+      return result;
     },
     setProjectVars: function (projectVars) {
       this.projectVars = projectVars;
+    },
+    getProject: function () {
+      return this.projectVars;
     },
     getGroupBy: function () {
       return this.groupBy;
@@ -12757,7 +12901,7 @@ module['exports'] = Jassa;
       result.type = this.type;
       result.distinct = this.distinct;
       result.reduced = this.reduced;
-      result._isResultStar = this._isResultStar;
+      result.resultStar = this.resultStar;
       result.limit = this.limit;
       result.offset = this.offset;
       result.projectVars = this.projectVars.copySubstitute(fnNodeMap);
@@ -12814,8 +12958,17 @@ module['exports'] = Jassa;
         this.limit = limit ? limit : null;
       }
     },
+    isDistinct: function () {
+      return this.distinct;
+    },
     setDistinct: function (enable) {
       this.distinct = enable === true ? true : false;
+    },
+    isReduced: function () {
+      return this.reduced;
+    },
+    setReduced: function (enable) {
+      this.reduced = enable === true ? true : false;
     },
     toString: function () {
       switch (this.type) {
@@ -12826,7 +12979,7 @@ module['exports'] = Jassa;
       }
     },
     toStringProjection: function () {
-      if (this._isResultStar) {
+      if (this.resultStar) {
         return '*';
       }
       return '' + this.projectVars;
@@ -14580,7 +14733,8 @@ module['exports'] = Jassa;
     if (!query) {
       return [];
     }
-    var projectVarList = query.getProjectVars().getVarList();
+    var projectVarList = query.getProjectVars();
+    //query.getProjectVars().getVarList();
     var projectVarNameList = sparql.VarUtils.getVarNames(projectVarList);
     var result = _(projectVarNameList).map(function (varName) {
         var col = {
@@ -14641,7 +14795,8 @@ module['exports'] = Jassa;
       var qe = this.sparqlService.createQueryExecution(query);
       var result = qe.execSelect().pipe(function (rs) {
           var data = [];
-          var projectVarList = query.getProjectVars().getVarList();
+          var projectVarList = query.getProjectVars();
+          //query.getProjectVars().getVarList();
           while (rs.hasNext()) {
             var binding = rs.next();
             var o = ns.bindingToJson(projectVarList, binding);
@@ -14653,7 +14808,7 @@ module['exports'] = Jassa;
     },
     getSchema: function () {
       var query = this.query;
-      //var projectVarList = query.getProjectVars().getVarList();
+      //var projectVarList = query.getProjectVars(); //query.getProjectVars().getVarList();
       //var projectVarNameList = sparql.VarUtils.getVarNames(projectVarList);
       var colDefs = ns.createNgGridOptionsFromQuery(query);
       return colDefs;
@@ -16084,7 +16239,7 @@ module['exports'] = Jassa;
         subQuery.setLimit(limit);
         subQuery.setOffset(offset);
         subQuery.setDistinct(true);
-        subQuery.getProjectVars().add(idVar);
+        subQuery.getProject().add(idVar);
         outerElement = new sparql.ElementGroup([
           subElement,
           oe
@@ -16138,7 +16293,7 @@ module['exports'] = Jassa;
       var query = new sparql.Query();
       query.getElements().push(outerElement);
       _(vars).each(function (v) {
-        query.getProjectVars().add(v);
+        query.getProject().add(v);
       });
       if (idExpr != null) {
         //console.log('Expr' + JSON.stringify(idExpr));
@@ -16415,24 +16570,31 @@ or simply: Angular + Magic Sparql = Angular Marql
       return result;
     }
   });
-  ns.PrefixMap = Class.create({
-    initialize: function (prefixes) {
-      this.prefixes = prefixes ? prefixes : {};
-    },
-    addPrefix: function (prefix, urlBase) {
-      this.prefixes[prefix] = urlBase;
-    },
-    getPrefix: function (prefix) {
-      var result = this.prefixes[prefix];
-      return result;
-    },
-    addJson: function (json) {
-      _.extend(this.prefixes, json);
-    },
-    getJson: function () {
-      return this.prefixes;
-    }
-  });
+  // Use sparql.PrefixMapping instead
+  /*
+	ns.PrefixMap = Class.create({
+		initialize: function(prefixes) {
+			this.prefixes = prefixes ? prefixes : {};
+		},
+		
+		addPrefix: function(prefix, urlBase) {
+			this.prefixes[prefix] = urlBase;
+		},
+		
+		getPrefix: function(prefix) {
+			var result = this.prefixes[prefix];
+			return result;
+		},
+		
+		addJson: function(json) {
+			_.extend(this.prefixes, json);
+		},
+		
+		getJson: function() {
+			return this.prefixes;
+		}
+	});
+	*/
   /*
 	ns.SparqlTable = Class.create({
 		initialize: function(context, table, element) {
@@ -16472,7 +16634,7 @@ or simply: Angular + Magic Sparql = Angular Marql
   ns.Context = Class.create({
     initialize: function (schema) {
       this.schema = schema ? schema : new ns.Schema();
-      this.prefixMap = new ns.PrefixMap();
+      this.prefixMapping = new sparql.PrefixMappingImpl();
       // TODO We should not map to element directly, but to ElementProvider
       this.tableNameToElementFactory = {};
       // Note: the names of mappings and tables are in different namespaces
@@ -16484,8 +16646,8 @@ or simply: Angular + Magic Sparql = Angular Marql
     getSchema: function () {
       return this.schema;
     },
-    getPrefixMap: function () {
-      return this.prefixMap;
+    getPrefixMapping: function () {
+      return this.prefixMapping;
     },
     getPatternParser: function () {
       return this.patternParser;
@@ -16517,7 +16679,8 @@ or simply: Angular + Magic Sparql = Angular Marql
   });
   ns.ContextUtils = {
     createTable: function (context, name, elementStr) {
-      var prefixes = context.getPrefixMap().getJson();
+      var prefixes = context.getPrefixMapping().getNsPrefixMap();
+      //getJson();
       var vars = sparql.extractSparqlVars(elementStr);
       var str = sparql.expandPrefixes(prefixes, elementStr);
       var element = sparql.ElementString.create(str, vars);
@@ -16585,16 +16748,17 @@ or simply: Angular + Magic Sparql = Angular Marql
   var util = Jassa.util;
   var ns = Jassa.sponate;
   ns.MapParser = Class.create({
-    initialize: function (prefixMap, patternParser) {
+    initialize: function (prefixMapping, patternParser) {
+      this.prefixMapping = prefixMapping;
       this.patternParser = patternParser || new ns.ParserPattern();
     },
     parseMap: function (spec) {
-      var result = ns.SponateUtils.parseMap(spec, this.prefixMap, this.patternParser);
+      var result = ns.SponateUtils.parseMap(spec, this.prefixMapping, this.patternParser);
       return result;
     }
   });
   ns.SponateUtils = {
-    parseMap: function (spec, prefixMap, patternParser) {
+    parseMap: function (spec, prefixMapping, patternParser) {
       var name = spec.name;
       var jsonTemplate = spec.template;
       var from = spec.from;
@@ -16604,8 +16768,8 @@ or simply: Angular + Magic Sparql = Angular Marql
       var elementFactory;
       if (_(from).isString()) {
         var elementStr = from;
-        if (prefixMap != null) {
-          var prefixes = prefixMap.getJson();
+        if (prefixMapping != null) {
+          var prefixes = prefixMapping.getNsPrefixMap();
           //var vars = sparql.extractSparqlVars(elementStr);
           var str = sparql.expandPrefixes(prefixes, elementStr);
         }
@@ -17048,7 +17212,8 @@ or simply: Angular + Magic Sparql = Angular Marql
     initialize: function (service, prefixes) {
       this.service = service;
       this.context = new ns.Context();
-      this.context.getPrefixMap().addJson(prefixes);
+      prefixes = prefixes || {};
+      this.context.getPrefixMapping().setNsPrefixes(prefixes);
     },
     addMap: function (obj, name) {
       var result = obj instanceof ns.Mapping ? this.addMapObj(name, obj) : this.addMapSpec(obj);
@@ -17064,7 +17229,7 @@ or simply: Angular + Magic Sparql = Angular Marql
       return this;
     },
     addMapSpec: function (spec) {
-      var map = ns.SponateUtils.parseMap(spec, this.context.getPrefixMap(), this.context.getPatternParser());
+      var map = ns.SponateUtils.parseMap(spec, this.context.getPrefixMapping(), this.context.getPatternParser());
       var name = spec.name;
       //mapping.getName();
       var result = this.addMapObj(name, map);
@@ -18432,7 +18597,7 @@ or simply: Angular + Magic Sparql = Angular Marql
     createQueryList: function (concept) {
       var result = new sparql.Query();
       result.setDistinct(true);
-      result.getProjectVars().add(concept.getVar());
+      result.getProject().add(concept.getVar());
       var resultElements = result.getElements();
       var conceptElements = concept.getElements();
       resultElements.push.apply(resultElements, conceptElements);
@@ -18446,7 +18611,7 @@ or simply: Angular + Magic Sparql = Angular Marql
       /*
             var subQuery = new sparql.Query();
             
-            subQuery.getProjectVars().add(concept.getVar());
+            subQuery.getProject().add(concept.getVar());
             subQuery.setDistinct(true);
 
             var subQueryElements = subQuery.getElements();
@@ -18455,13 +18620,13 @@ or simply: Angular + Magic Sparql = Angular Marql
             */
       var subQuery = ns.ConceptUtils.createQueryList(concept);
       var result = new sparql.Query();
-      result.getProjectVars().add(outputVar, new sparql.E_Count());
+      result.getProject().add(outputVar, new sparql.E_Count());
       result.getElements().push(subQuery);
       return result;
     },
     createQueryCountDoesNotWorkWithVirtuoso: function (concept, outputVar) {
       var result = new sparql.Query();
-      result.getProjectVars().add(outputVar, new sparql.E_Count(new sparql.ExprVar(concept.getVar()), true));
+      result.getProject().add(outputVar, new sparql.E_Count(new sparql.ExprVar(concept.getVar()), true));
       var resultElements = result.getElements();
       var conceptElements = concept.getElements();
       resultElements.push.apply(resultElements, conceptElements);
@@ -18729,7 +18894,8 @@ or simply: Angular + Magic Sparql = Angular Marql
         return null;
       }
       //var varsMentioned = query.getVarsMentioned();
-      var varsMentioned = query.getProjectVars().getVarList();
+      var varsMentioned = query.getProject();
+      //.getVarList();
       var varNames = _.map(varsMentioned, function (v) {
           return v.value;
         });
@@ -18933,6 +19099,37 @@ or simply: Angular + Magic Sparql = Angular Marql
       var facetNode = rootFacetNode.forPath(constraintSpec.getDeclaredPath());
       var elements = sparql.ElementUtils.createElementsTriplesBlock(facetNode.getTriples());
       var triplesAndExprs = new ns.ElementsAndExprs(elements, []);
+      return result;
+    }
+  });
+  ns.ConstraintElementFactoryLang = Class.create(ns.ConstraintElementFactory, {
+    createElementsAndExprs: function (rootFacetNode, constraintSpec) {
+      var facetNode = rootFacetNode.forPath(constraintSpec.getDeclaredPath());
+      var pathVar = facetNode.getVar();
+      var exprVar = new sparql.ExprVar(pathVar);
+      var elements = sparql.ElementUtils.createElementsTriplesBlock(facetNode.getTriples());
+      // NOTE Value is assumed to be node holding a string, maybe check it here
+      var val = constraintSpec.getValue().getLiteralValue();
+      var exprs = [new sparql.E_LangMatches(new sparql.E_Lang(exprVar), val)];
+      var result = new ns.ElementsAndExprs(elements, exprs);
+      //console.log('constraintSpec.getValue() ', constraintSpec.getValue());
+      return result;
+    }
+  });
+  ns.ConstraintElementFactoryRegex = Class.create(ns.ConstraintElementFactory, {
+    createElementsAndExprs: function (rootFacetNode, constraintSpec) {
+      var facetNode = rootFacetNode.forPath(constraintSpec.getDeclaredPath());
+      var pathVar = facetNode.getVar();
+      var exprVar = new sparql.ExprVar(pathVar);
+      //var elements = [new sparql.ElementTriplesBlock(facetNode.getTriples())];
+      var elements = sparql.ElementUtils.createElementsTriplesBlock(facetNode.getTriples());
+      //var valueExpr = constraintSpec.getValue();
+      //var valueExpr = sparql.NodeValue.makeNode(constraintSpec.getValue());
+      // NOTE Value is assumed to be node holding a string, maybe check it here
+      var val = constraintSpec.getValue().getLiteralValue();
+      var exprs = [new sparql.E_Regex(exprVar, val, 'i')];
+      var result = new ns.ElementsAndExprs(elements, exprs);
+      //console.log('constraintSpec.getValue() ', constraintSpec.getValue());
       return result;
     }
   });
@@ -19235,8 +19432,185 @@ or simply: Angular + Magic Sparql = Angular Marql
     result.put('equal', new ns.ConstraintElementFactoryEqual());
     //registry.put("range", new facete.ConstaintElementFactoryRange());		
     result.put('bbox', new ns.ConstraintElementFactoryBBoxRange());
+    result.put('regex', new ns.ConstraintElementFactoryRegex());
+    result.put('lang', new ns.ConstraintElementFactoryLang());
     return result;
   };
+  /**
+	 * A class which is backed by a a jassa.util.list<Constraint>
+	 * Only the backing list's .toArray() method is used, essentially
+	 * using the list as a supplier.
+	 * 
+	 * The question is, whether the methods
+	 * .getConstraintSteps()
+	 * .getConstraintsByPath()
+	 * 
+	 * justify a list wrapper.
+	 * Or maybe these should be static helpers?
+	 * 
+	 *  
+	 */
+  ns.ConstraintList = Class.create({
+    classLabel: 'jassa.facete.ConstraintList',
+    initialize: function (list) {
+      this.list = list || new util.ArrayList();
+    },
+    getConstraintsByPath: function (path) {
+      var result = [];
+      var constraints = this.constraints;
+      for (var i = 0; i < constraints.length; ++i) {
+        var constraint = constraints[i];
+        var paths = constraint.getDeclaredPaths();
+        var isPath = _.some(paths, function (p) {
+            var tmp = p.equals(path);
+            return tmp;
+          });
+        if (isPath) {
+          result.push(constraint);
+        }
+      }
+      return result;
+    },
+    getConstrainedSteps: function (path) {
+      //console.log("getConstrainedSteps: ", path);
+      //checkNotNull(path);
+      var tmp = [];
+      var steps = path.getSteps();
+      var constraints = this.constraints;
+      for (var i = 0; i < constraints.length; ++i) {
+        var constraint = constraints[i];
+        //console.log("  Constraint: " + constraint);
+        var paths = constraint.getDeclaredPaths();
+        //console.log("    Paths: " + paths.length + " - " + paths);
+        for (var j = 0; j < paths.length; ++j) {
+          var p = paths[j];
+          var pSteps = p.getSteps();
+          var delta = pSteps.length - steps.length;
+          //console.log("      Compare: " + delta, p, path);
+          var startsWith = p.startsWith(path);
+          //console.log("      Startswith: " + startsWith);
+          if (delta == 1 && startsWith) {
+            var step = pSteps[pSteps.length - 1];
+            tmp.push(step);
+          }
+        }
+      }
+      var result = _.uniq(tmp, function (step) {
+          return '' + step;
+        });
+      //console.log("Constraint result", constraints.length, result.length);
+      return result;
+    },
+    getConstraints: function () {
+      return this.constraints;
+    },
+    addConstraint: function (constraint) {
+      this.constraints.push(constraint);
+    },
+    removeConstraint: function (constraint) {
+      var result = false;
+      var cs = this.constraints;
+      var n = [];
+      for (var i = 0; i < cs.length; ++i) {
+        var c = cs[i];
+        if (!c.equals(constraint)) {
+          n.push(c);
+        } else {
+          result = true;
+        }
+      }
+      this.constraints = n;
+      return result;
+    },
+    toggleConstraint: function (constraint) {
+      var wasRemoved = this.removeConstraint(constraint);
+      if (!wasRemoved) {
+        this.addConstraint(constraint);
+      }
+    }
+  });
+  /**
+	 * The constraint compiler provides a method for transforming a constraintList
+	 * into corresponding SPARQL elements.
+	 * 
+	 * The compiler is initialized with a constraintElementFactory. The compiler
+	 * just delegates to these factories.
+	 * 
+	 */
+  ns.ConstraintCompiler = Class.create({
+    initialize: function (cefRegistry) {
+      if (!cefRegistry) {
+        cefRegistry = ns.createDefaultConstraintElementFactories();
+      }
+      this.cefRegistry = cefRegistry;
+    },
+    getCefRegistry: function () {
+      return this.cefRegistry;
+    },
+    createElementsAndExprs: function (constraintList, facetNode, excludePath) {
+      //var triples = [];
+      var elements = [];
+      var resultExprs = [];
+      var pathToExprs = {};
+      var self = this;
+      var constraints = constraintList.toArray();
+      _(constraints).each(function (constraint) {
+        var paths = constraint.getDeclaredPaths();
+        var pathId = _(paths).reduce(function (memo, path) {
+            return memo + ' ' + path;
+          }, '');
+        // Check if any of the paths is excluded
+        if (excludePath) {
+          var skip = _(paths).some(function (path) {
+              //console.log("Path.equals", excludePath, path);
+              var tmp = excludePath.equals(path);
+              return tmp;
+            });
+          if (skip) {
+            return;
+          }
+        }
+        _(paths).each(function (path) {
+          //if(path.equals(excludePath)) {
+          // TODO Exclude only works if there is only a single path
+          // Or more generally, if all paths were excluded...
+          // At least that somehow seems to make sense
+          //}
+          var fn = facetNode.forPath(path);
+          //console.log("FNSTATE", fn);
+          var tmpElements = fn.getElements();
+          elements.push.apply(elements, tmpElements);
+        });
+        var constraintName = constraint.getName();
+        var cef = self.cefRegistry.get(constraintName);
+        if (!cef) {
+          throw 'No constraintElementFactory registered for ' + constraintName;
+        }
+        var ci = cef.createElementsAndExprs(facetNode, constraint);
+        //var ci = constraint.instanciate(facetNode);
+        var ciElements = ci.getElements();
+        var ciExprs = ci.getExprs();
+        if (ciElements) {
+          elements.push.apply(elements, ciElements);
+        }
+        if (ciExprs && ciExprs.length > 0) {
+          var exprs = pathToExprs[pathId];
+          if (!exprs) {
+            exprs = [];
+            pathToExprs[pathId] = exprs;
+          }
+          var andExpr = sparql.andify(ciExprs);
+          exprs.push(andExpr);
+        }
+      });
+      _(pathToExprs).each(function (exprs) {
+        var orExpr = sparql.orify(exprs);
+        resultExprs.push(orExpr);
+      });
+      var result = new ns.ElementsAndExprs(elements, resultExprs);
+      return result;
+    }
+  });
   /**
 	 * A constraint manager is a container for ConstraintSpec objects.
 	 * 
@@ -20041,12 +20415,12 @@ or simply: Angular + Magic Sparql = Angular Marql
       //result.groupBy.push(outputVar);
       if (groupVars) {
         _(groupVars).each(function (groupVar) {
-          varQuery.getProjectVars().add(groupVar);  //varQuery.getGroupBy().push(new sparql.ExprVar(groupVar));
+          varQuery.getProject().add(groupVar);  //varQuery.getGroupBy().push(new sparql.ExprVar(groupVar));
         });
       }
       varQuery.setDistinct(useDistinct);
       if (variable) {
-        varQuery.getProjectVars().add(variable);
+        varQuery.getProject().add(variable);
       } else {
         varQuery.setResultStar(true);
       }
@@ -20054,11 +20428,11 @@ or simply: Angular + Magic Sparql = Angular Marql
       var result = new sparql.Query();
       if (groupVars) {
         _(groupVars).each(function (groupVar) {
-          result.getProjectVars().add(groupVar);
+          result.getProject().add(groupVar);
           result.getGroupBy().push(new sparql.ExprVar(groupVar));
         });
       }
-      result.getProjectVars().add(outputVar, new sparql.E_Count());
+      result.getProject().add(outputVar, new sparql.E_Count());
       result.getElements().push(elementVarQuery);
       //exp, new sparql.E_Count(exprVar, useDistinct));
       //ns.applyQueryOptions(result, options);
@@ -20095,11 +20469,11 @@ or simply: Angular + Magic Sparql = Angular Marql
       //result.groupBy.push(outputVar);
       if (groupVars) {
         _(groupVars).each(function (groupVar) {
-          result.getProjectVars().add(groupVar);
+          result.getProject().add(groupVar);
           result.getGroupBy().push(new sparql.ExprVar(groupVar));
         });
       }
-      result.getProjectVars().add(outputVar, new sparql.E_Count(exprVar, useDistinct));
+      result.getProject().add(outputVar, new sparql.E_Count(exprVar, useDistinct));
       //ns.applyQueryOptions(result, options);
       //debugger;
       //console.log("Created count query:" + result + " for element " + element);
@@ -20941,6 +21315,7 @@ or simply: Angular + Magic Sparql = Angular Marql
   var rdf = Jassa.rdf;
   var sponate = Jassa.sponate;
   var util = Jassa.util;
+  var sparql = Jassa.sparql;
   var ns = Jassa.facete;
   /**
 	 * TODO: Actually this object could take the FacetTreeConfig as its sole config argument (the other arg would be the service)
@@ -21257,7 +21632,7 @@ or simply: Angular + Magic Sparql = Angular Marql
       var countVar = facetConcept.getFacetValueVar();
       var outputVar = rdf.NodeFactory.createVar('_c_');
       var query = ns.QueryUtils.createQueryCount(elements, null, countVar, outputVar, [groupVar], true);
-      var countExpr = query.getProjectVars().getExpr(outputVar);
+      var countExpr = query.getProject().getExpr(outputVar);
       //console.log('sort cond: ' + countExpr);
       query.getOrderBy().push(new sparql.SortCondition(countExpr, -1));
       //console.log('All facet query: ' + query);
@@ -21424,8 +21799,8 @@ or simply: Angular + Magic Sparql = Angular Marql
                 var limitQuery = new sparql.Query();
                 var limitElements = limitQuery.getElements();
 
-                limitQuery.getProjectVars().add(groupVar);
-                limitQuery.getProjectVars().add(countVar);
+                limitQuery.getProject().add(groupVar);
+                limitQuery.getProject().add(countVar);
 
                 limitElements.push.apply(limitElements, elements);
                 limitQuery.setLimit(scanLimit);
@@ -21433,8 +21808,8 @@ or simply: Angular + Magic Sparql = Angular Marql
           /*
                 var distinctQuery = new sparql.Query();
                 distinctQuery.setDistinct(true);
-                distinctQuery.getProjectVars().add(groupVar);
-                distinctQuery.getProjectVars().add(countVar);
+                distinctQuery.getProject().add(groupVar);
+                distinctQuery.getProject().add(countVar);
                 distinctQuery.getElements().push(new sparql.ElementSubQuery(limitQuery));
                 distinctQuery.setLimit(limit);
                 */
@@ -21453,8 +21828,8 @@ or simply: Angular + Magic Sparql = Angular Marql
           });
         var elementUnion = new sparql.ElementUnion(unionElements);
         finalQuery = new sparql.Query();
-        finalQuery.getProjectVars().add(groupVar);
-        finalQuery.getProjectVars().add(outputVar);
+        finalQuery.getProject().add(groupVar);
+        finalQuery.getProject().add(outputVar);
         var finalElements = finalQuery.getElements();
         finalQuery.getElements().push(elementUnion);
       } else if (unionMembers.length === 1) {
@@ -21772,6 +22147,152 @@ or simply: Angular + Magic Sparql = Angular Marql
     };
 }(jQuery));
 (function () {
+  var sponate = Jassa.sponate;
+  var ns = Jassa.facete;
+  ns.FacetValueService = Class.create({
+    initialize: function (sparqlService, facetTreeConfig) {
+      this.sparqlService = sparqlService;
+      this.facetTreeConfig = facetTreeConfig;
+    },
+    getFacetTreeConfig: function () {
+      return this.facetTreeConfig;
+    },
+    createFacetValueFetcher: function (path, filterText, excludeSelfConstraints) {
+      excludeSelfConstraints = excludeSelfConstraints || true;
+      var facetConfig = this.facetTreeConfig.getFacetConfig();
+      var facetConceptGenerator = ns.FaceteUtils.createFacetConceptGenerator(facetConfig);
+      var concept = facetConceptGenerator.createConceptResources(path, excludeSelfConstraints);
+      var constraintTaggerFactory = new ns.ConstraintTaggerFactory(facetConfig.getConstraintManager());
+      var store = new sponate.StoreFacade(this.sparqlService);
+      var labelMap = sponate.SponateUtils.createDefaultLabelMap();
+      store.addMap(labelMap, 'labels');
+      labelsStore = store.labels;
+      var criteria = {};
+      if (filterText) {
+        criteria = {
+          $or: [
+            {
+              hiddenLabels: {
+                $elemMatch: {
+                  id: {
+                    $regex: filterText,
+                    $options: 'i'
+                  }
+                }
+              }
+            },
+            {
+              id: {
+                $regex: filterText,
+                $options: 'i'
+              }
+            }
+          ]
+        };
+      }
+      var baseFlow = labelsStore.find(criteria).concept(concept, true);
+      var result = new ns.FacetValueFetcher(baseFlow, this.facetTreeConfig, path);
+      return result;
+    }
+  });
+  ns.FacetValueFetcher = Class.create({
+    initialize: function (baseFlow, facetTreeConfig, path) {
+      this.baseFlow = baseFlow;
+      this.facetTreeConfig = facetTreeConfig;
+      this.path = path;
+    },
+    fetchCount: function () {
+      var countPromise = this.baseFlow.count();
+      return countPromise;
+    },
+    fetchData: function (offset, limit) {
+      var dataFlow = this.baseFlow.skip(offset).limit(limit);
+      var self = this;
+      var dataPromise = dataFlow.asList(true).pipe(function (docs) {
+          var path = self.path;
+          var facetConfig = self.facetTreeConfig.getFacetConfig();
+          var constraintTaggerFactory = new ns.ConstraintTaggerFactory(facetConfig.getConstraintManager());
+          var tagger = constraintTaggerFactory.createConstraintTagger(path);
+          var r = _(docs).map(function (doc) {
+              // TODO Sponate must support retaining node objects
+              //var node = rdf.NodeFactory.parseRdfTerm(doc.id);
+              var node = doc.id;
+              var label = doc.displayLabel ? doc.displayLabel : '' + doc.id;
+              //console.log('displayLabel', label);
+              var tmp = {
+                  displayLabel: label,
+                  path: path,
+                  node: node,
+                  tags: tagger.getTags(node)
+                };
+              return tmp;
+            });
+          return r;
+        });
+      return dataPromise;
+    }
+  });  /*    
+    // TODO This class is NOT used yet - its purpose is to make the FacetValueListCtrl simpler 
+    ns.FacetValueService = Class.create({
+        initialize: function(facetService, facetConceptGenerator, constraintTaggerFactory) {
+            this.sparqlService = sparqlService;
+            this.facetService = facetService;
+            this.constraintTaggerFactory = constraintTaggerFactory;
+        },
+       
+        fetchFacetValues: function(path, excludeSelfConstraints) {
+            var facetService = this.facetService;
+            var constraintTaggerFactory = this.constraintTaggerFactory;
+
+
+            var concept = facetConceptGenerator.createConceptResources(path, excludeSelfConstraints);
+
+            var concept = facetService.createConceptFacetValues(path, true);
+            var countVar = rdf.NodeFactory.createVar("_c_");
+            var queryCount = facete.ConceptUtils.createQueryCount(concept, countVar);
+            var qeCount = qef.createQueryExecution(queryCount);
+            var countPromise = service.ServiceUtils.fetchInt(qeCount, countVar);
+            
+            var query = facete.ConceptUtils.createQueryList(concept);           
+            
+            
+
+            
+            var pageSize = 10;
+            
+            query.setLimit(pageSize);
+            query.setOffset(($scope.currentPage - 1) * pageSize);
+            
+            var qe = qef.createQueryExecution(query);
+            var dataPromise = service.ServiceUtils.fetchList(qe, concept.getVar()).pipe(function(nodes) {
+
+                var tagger = constraintTaggerFactory.createConstraintTagger(path);
+                
+                var r = _(nodes).map(function(node) {
+                    var tmp = {
+                        path: path,
+                        node: node,
+                        tags: tagger.getTags(node)
+                    };
+
+                    return tmp;
+                });
+
+                return r;
+            });
+            
+            var result = {
+                countPromise: countPromise,
+                dataPromise: dataPromise
+            };
+            
+            return result;
+        }
+    });
+  
+*/
+}());
+(function () {
   var util = Jassa.util;
   var rdf = Jassa.rdf;
   // TODO Get rid of this dependency :/
@@ -21779,10 +22300,11 @@ or simply: Angular + Magic Sparql = Angular Marql
   var ns = Jassa.facete;
   ns.FacetConfig = Class.create({
     classLabel: 'jassa.facete.FacetConfig',
-    initialize: function (baseConcept, rootFacetNode, constraintManager, pathTaggerManager) {
+    initialize: function (baseConcept, rootFacetNode, constraintManager, labelMap, pathTaggerManager) {
       this.baseConcept = baseConcept;
       this.rootFacetNode = rootFacetNode;
       this.constraintManager = constraintManager;
+      this.labelMap = labelMap || sponate.SponateUtils.createDefaultLabelMap();
       this.pathTaggerManager = pathTaggerManager || new ns.ItemTaggerManager();
     },
     getBaseConcept: function () {
@@ -21802,6 +22324,12 @@ or simply: Angular + Magic Sparql = Angular Marql
     },
     setConstraintManager: function (constraintManager) {
       this.constraintManager = constraintManager;
+    },
+    getLabelMap: function () {
+      return this.labelMap;
+    },
+    setLabelMap: function () {
+      this.labelMap = labelMap;
     },
     getPathTaggerManager: function () {
       return this.pathTaggerManager;
@@ -21883,14 +22411,14 @@ or simply: Angular + Magic Sparql = Angular Marql
       var result = fcgf.createFacetConceptGenerator();
       return result;
     },
-    createFacetService: function (sparqlService, facetConfig, labelMap) {
+    createFacetService: function (sparqlService, facetConfig) {
       var facetConceptGenerator = this.createFacetConceptGenerator(facetConfig);
-      labelMap = labelMap || new sponate.SponateUtils.createDefaultLabelMap();
-      var facetService = new ns.FacetServiceImpl(sparqlService, facetConceptGenerator, labelMap, facetConfig.getPathTaggerManager());
+      //labelMap = labelMap || sponate.SponateUtils.createDefaultLabelMap();
+      var facetService = new ns.FacetServiceImpl(sparqlService, facetConceptGenerator, facetConfig.getLabelMap(), facetConfig.getPathTaggerManager());
       return facetService;
     },
-    createFacetTreeService: function (sparqlService, facetTreeConfig, labelMap) {
-      var facetService = this.createFacetService(sparqlService, facetTreeConfig.getFacetConfig(), labelMap);
+    createFacetTreeService: function (sparqlService, facetTreeConfig) {
+      var facetService = this.createFacetService(sparqlService, facetTreeConfig.getFacetConfig());
       var expansionSet = facetTreeConfig.getExpansionSet();
       var expansionMap = facetTreeConfig.getExpansionMap();
       var facetStateProvider = facetTreeConfig.getFacetStateProvider();
@@ -22364,10 +22892,10 @@ or simply: Angular + Magic Sparql = Angular Marql
           }
           var aggExpr = aggExprFactory.createExpr(ev);
           ev = aggExpr;
-          result.getProjectVars().add(v, ev);
+          result.getProject().add(v, ev);
         } else {
           nonAggColumnIds.push(columnId);
-          result.getProjectVars().add(v);
+          result.getProject().add(v);
         }
         idToColExpr[columnId] = ev;
       });
@@ -46953,650 +47481,6 @@ if (typeof jQuery === 'undefined') {
     }
   ]);
 }(window, window.angular));
-/*
- * jassa-ui-angular
- * https://github.com/GeoKnow/Jassa-UI-Angular
-
- * Version: 0.0.1-SNAPSHOT - 2014-04-24
- * License: MIT
- */
-angular.module('ui.jassa', [
-  'ui.jassa.tpls',
-  'ui.jassa.constraint-list',
-  'ui.jassa.facet-tree',
-  'ui.jassa.facet-value-list',
-  'ui.jassa.sparql-table',
-  'ui.jassa.template-list'
-]);
-angular.module('ui.jassa.tpls', [
-  'template/constraint-list/constraint-list.html',
-  'template/facet-tree/facet-dir-content.html',
-  'template/facet-tree/facet-dir-ctrl.html',
-  'template/facet-tree/facet-tree-item.html',
-  'template/facet-value-list/facet-value-list.html',
-  'template/sparql-table/sparql-table.html',
-  'template/template-list/template-list.html'
-]);
-angular.module('ui.jassa.constraint-list', []).controller('ConstraintListCtrl', [
-  '$scope',
-  '$rootScope',
-  function ($scope, $rootScope) {
-    var self = this;
-    //var constraintManager;
-    var updateConfig = function () {
-      var isConfigured = $scope.facetTreeConfig;
-      //debugger;
-      $scope.constraintManager = isConfigured ? $scope.facetTreeConfig.getFacetConfig().getConstraintManager() : null;
-    };
-    var update = function () {
-      updateConfig();
-      self.refresh();
-    };
-    $scope.ObjectUtils = Jassa.util.ObjectUtils;
-    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig)]';
-    $scope.$watch(watchList, function () {
-      update();
-    }, true);
-    var renderConstraint = function (constraint) {
-      var type = constraint.getName();
-      var result;
-      switch (type) {
-      case 'equal':
-        var pathStr = '' + constraint.getDeclaredPath();
-        if (pathStr === '') {
-          pathStr = '()';
-        }
-        result = pathStr + ' = ' + constraint.getValue();
-        break;
-      default:
-        result = constraint;
-      }
-      return result;
-    };
-    self.refresh = function () {
-      var constraintManager = $scope.constraintManager;
-      var items;
-      if (!constraintManager) {
-        items = [];
-      } else {
-        var constraints = constraintManager.getConstraints();
-        items = _(constraints).map(function (constraint) {
-          var r = {
-              constraint: constraint,
-              label: '' + renderConstraint(constraint)
-            };
-          return r;
-        });
-      }
-      $scope.constraints = items;
-    };
-    $scope.removeConstraint = function (item) {
-      $scope.constraintManager.removeConstraint(item.constraint);  //$scope.$emit('facete:constraintsChanged');
-    };
-  }
-]).directive('constraintList', function () {
-  return {
-    restrict: 'EA',
-    replace: true,
-    templateUrl: 'template/constraint-list/constraint-list.html',
-    transclude: false,
-    require: 'constraintList',
-    scope: {
-      sparqlService: '=',
-      facetTreeConfig: '=',
-      onSelect: '&select'
-    },
-    controller: 'ConstraintListCtrl'
-  };
-});
-;
-angular.module('ui.jassa.facet-tree', []).controller('FacetTreeDirContentCtrl', [
-  '$rootScope',
-  '$scope',
-  '$q',
-  function ($rootScope, $scope, $q) {
-  }
-]).directive('facetTreeDirContent', function ($parse) {
-  return {
-    restrict: 'EA',
-    replace: true,
-    templateUrl: 'template/facet-tree/facet-tree-content.html',
-    transclude: false,
-    require: 'facetTree',
-    scope: {
-      sparqlService: '=',
-      facetTreeConfig: '=',
-      plugins: '=',
-      onSelect: '&select'
-    },
-    controller: 'FacetTreeDirContentCtrl',
-    compile: function (elm, attrs) {
-      return function link(scope, elm, attrs, controller) {
-      };
-    }
-  };
-});
-;
-angular.module('ui.jassa.facet-tree', ['ui.jassa.template-list']).controller('FacetTreeCtrl', [
-  '$rootScope',
-  '$scope',
-  '$q',
-  function ($rootScope, $scope, $q) {
-    var self = this;
-    var updateFacetTreeService = function () {
-      var isConfigured = $scope.sparqlService && $scope.facetTreeConfig;
-      //debugger;
-      $scope.facetTreeService = isConfigured ? Jassa.facete.FaceteUtils.createFacetTreeService($scope.sparqlService, $scope.facetTreeConfig, null) : null;
-    };
-    var update = function () {
-      updateFacetTreeService();
-      //controller.refresh();
-      self.refresh();
-    };
-    $scope.setFacetHover = function (facet, isHovered) {
-      facet.isHovered = isHovered;
-      if (facet.incoming) {
-        facet.incoming.isHovered = isHovered;
-      }
-      if (facet.outgoing) {
-        facet.outgoing.isHovered = isHovered;
-      }
-    };
-    $scope.ObjectUtils = Jassa.util.ObjectUtils;
-    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig)]';
-    $scope.$watch(watchList, function () {
-      update();
-    }, true);
-    $scope.doFilter = function (path, filterString) {
-      $scope.facetTreeConfig.getPathToFilterString().put(path, filterString);
-      self.refresh();
-    };
-    self.refresh = function () {
-      var facet = $scope.facet;
-      var startPath = facet ? facet.item.getPath() : new Jassa.facete.Path();
-      if ($scope.facetTreeService) {
-        var facetTreeTagger = Jassa.facete.FaceteUtils.createFacetTreeTagger($scope.facetTreeConfig.getPathToFilterString());
-        //console.log('scopefacets', $scope.facet);             
-        var promise = $scope.facetTreeService.fetchFacetTree(startPath);
-        Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $rootScope).then(function (data) {
-          facetTreeTagger.applyTags(data);
-          $scope.facet = data;
-        });
-      } else {
-        $scope.facet = null;
-      }
-    };
-    $scope.toggleCollapsed = function (path) {
-      Jassa.util.CollectionUtils.toggleItem($scope.facetTreeConfig.getExpansionSet(), path);
-      var val = $scope.facetTreeConfig.getExpansionMap().get(path);
-      if (val == null) {
-        $scope.facetTreeConfig.getExpansionMap().put(path, 1);
-      }
-      self.refresh();
-    };
-    $scope.selectIncoming = function (path) {
-      console.log('Incoming selected at path ' + path);
-      if ($scope.facetTreeConfig) {
-        var val = $scope.facetTreeConfig.getExpansionMap().get(path);
-        if (val != 2) {
-          $scope.facetTreeConfig.getExpansionMap().put(path, 2);
-          self.refresh();
-        }
-      }
-    };
-    $scope.selectOutgoing = function (path) {
-      console.log('Outgoing selected at path ' + path);
-      if ($scope.facetTreeConfig) {
-        var val = $scope.facetTreeConfig.getExpansionMap().get(path);
-        if (val != 1) {
-          $scope.facetTreeConfig.getExpansionMap().put(path, 1);
-          self.refresh();
-        }
-      }
-    };
-    $scope.selectFacetPage = function (page, facet) {
-      var path = facet.item.getPath();
-      var state = $scope.facetTreeConfig.getFacetStateProvider().getFacetState(path);
-      var resultRange = state.getResultRange();
-      console.log('Facet state for path ' + path + ': ' + state);
-      var limit = resultRange.getLimit() || 0;
-      var newOffset = limit ? (page - 1) * limit : null;
-      resultRange.setOffset(newOffset);
-      self.refresh();
-    };
-    $scope.toggleSelected = function (path) {
-      $scope.onSelect({ path: path });
-    };
-    $scope.toggleTableLink = function (path) {
-      //$scope.emit('facete:toggleTableLink');
-      tableMod.togglePath(path);
-      //$scope.$emit('')
-      // alert('yay' + JSON.stringify(tableMod.getPaths()));
-      $scope.$emit('facete:refresh');  //        var columnDefs = tableMod.getColumnDefs();
-                                       //        _(columnDefs).each(function(columnDef) {
-                                       //        });
-                                       //        tableMod.addColumnDef(null, new ns.ColumnDefPath(path));
-                                       //alert('yay ' + path);
-    };  //  $scope.$on('facete:refresh', function() {
-        //        $scope.refresh();
-        //  });
-  }
-]).directive('facetTree', function () {
-  return {
-    restrict: 'EA',
-    replace: true,
-    templateUrl: 'template/facet-tree/facet-tree-item.html',
-    transclude: false,
-    require: 'facetTree',
-    scope: {
-      sparqlService: '=',
-      facetTreeConfig: '=',
-      plugins: '=',
-      pluginContext: '=',
-      onSelect: '&select'
-    },
-    controller: 'FacetTreeCtrl',
-    compile: function (elm, attrs) {
-      return function link(scope, elm, attrs, controller) {
-      };
-    }
-  };
-});
-;
-angular.module('ui.jassa.facet-value-list', []).controller('FacetValueListCtrl', [
-  '$rootScope',
-  '$scope',
-  '$q',
-  function ($rootScope, $scope, $q) {
-    $scope.filterText = '';
-    $scope.pagination = {
-      totalItems: 0,
-      currentPage: 1,
-      maxSize: 5
-    };
-    //$scope.path = null;
-    var facetValueService = null;
-    var self = this;
-    var ns = {};
-    ns.FacetValueService = Class.create({
-      initialize: function (sparqlService, facetTreeConfig) {
-        this.sparqlService = sparqlService;
-        this.facetTreeConfig = facetTreeConfig;
-      },
-      getFacetTreeConfig: function () {
-        return this.facetTreeConfig;
-      },
-      createFacetValueFetcher: function (path, filterText) {
-        var facetConfig = this.facetTreeConfig.getFacetConfig();
-        var facetConceptGenerator = Jassa.facete.FaceteUtils.createFacetConceptGenerator(facetConfig);
-        var concept = facetConceptGenerator.createConceptResources(path, true);
-        var constraintTaggerFactory = new Jassa.facete.ConstraintTaggerFactory(facetConfig.getConstraintManager());
-        var store = new Jassa.sponate.StoreFacade(this.sparqlService);
-        var labelMap = Jassa.sponate.SponateUtils.createDefaultLabelMap();
-        store.addMap(labelMap, 'labels');
-        labelsStore = store.labels;
-        var criteria = {};
-        if (filterText) {
-          criteria = {
-            $or: [
-              {
-                hiddenLabels: {
-                  $elemMatch: {
-                    id: {
-                      $regex: filterText,
-                      $options: 'i'
-                    }
-                  }
-                }
-              },
-              {
-                id: {
-                  $regex: filterText,
-                  $options: 'i'
-                }
-              }
-            ]
-          };
-        }
-        var baseFlow = labelsStore.find(criteria).concept(concept, true);
-        var result = new ns.FacetValueFetcher(baseFlow, this.facetTreeConfig, path);
-        return result;
-      }
-    });
-    ns.FacetValueFetcher = Class.create({
-      initialize: function (baseFlow, facetTreeConfig, path) {
-        this.baseFlow = baseFlow;
-        this.facetTreeConfig = facetTreeConfig;
-        this.path = path;
-      },
-      fetchCount: function () {
-        var countPromise = this.baseFlow.count();
-        return countPromise;
-      },
-      fetchData: function (offset, limit) {
-        var dataFlow = this.baseFlow.skip(offset).limit(limit);
-        var self = this;
-        var dataPromise = dataFlow.asList(true).pipe(function (docs) {
-            var path = self.path;
-            var facetConfig = self.facetTreeConfig.getFacetConfig();
-            var constraintTaggerFactory = new Jassa.facete.ConstraintTaggerFactory(facetConfig.getConstraintManager());
-            var tagger = constraintTaggerFactory.createConstraintTagger(path);
-            var r = _(docs).map(function (doc) {
-                // TODO Sponate must support retaining node objects
-                //var node = rdf.NodeFactory.parseRdfTerm(doc.id);
-                var node = doc.id;
-                var label = doc.displayLabel ? doc.displayLabel : '' + doc.id;
-                //console.log('displayLabel', label);
-                var tmp = {
-                    displayLabel: label,
-                    path: path,
-                    node: node,
-                    tags: tagger.getTags(node)
-                  };
-                return tmp;
-              });
-            return r;
-          });
-        return dataPromise;
-      }
-    });
-    var updateFacetTreeService = function () {
-      var isConfigured = $scope.sparqlService && $scope.facetTreeConfig && $scope.path;
-      facetValueService = isConfigured ? new ns.FacetValueService($scope.sparqlService, $scope.facetTreeConfig) : null;
-    };
-    var update = function () {
-      updateFacetTreeService();
-      self.refresh();
-    };
-    $scope.ObjectUtils = Jassa.util.ObjectUtils;
-    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig), "" + path, pagination.currentPage]';
-    $scope.$watch(watchList, function () {
-      update();
-    }, true);
-    $scope.toggleConstraint = function (item) {
-      var constraintManager = facetValueService.getFacetTreeConfig().getFacetConfig().getConstraintManager();
-      var constraint = new facete.ConstraintSpecPathValue('equal', item.path, item.node);
-      // TODO Integrate a toggle constraint method into the filterManager
-      constraintManager.toggleConstraint(constraint);
-    };
-    self.refresh = function () {
-      var path = $scope.path;
-      if (!facetValueService || !path) {
-        $scope.totalItems = 0;
-        $scope.facetValues = [];
-        return;
-      }
-      var fetcher = facetValueService.createFacetValueFetcher($scope.path, $scope.filterText);
-      var countPromise = fetcher.fetchCount();
-      var pageSize = 10;
-      var offset = ($scope.pagination.currentPage - 1) * pageSize;
-      var dataPromise = fetcher.fetchData(offset, pageSize);
-      Jassa.sponate.angular.bridgePromise(countPromise, $q.defer(), $scope.$root, function (count) {
-        $scope.pagination.totalItems = count;
-      });
-      Jassa.sponate.angular.bridgePromise(dataPromise, $q.defer(), $scope.$root, function (items) {
-        $scope.facetValues = items;
-      });
-    };
-    $scope.filterTable = function (filterText) {
-      $scope.filterText = filterText;
-      update();
-    };  /*
-    $scope.$on('facete:facetSelected', function(ev, path) {
-
-        $scope.currentPage = 1;
-        $scope.path = path;
-        
-        updateItems();
-    });
-    
-    $scope.$on('facete:constraintsChanged', function() {
-        updateItems(); 
-    });
-    */
-        //  $scope.firstText = '<<';
-        //  $scope.previousText = '<';
-        //  $scope.nextText = '>';
-        //  $scope.lastText = '>>';
-  }
-]).directive('facetValueList', function () {
-  return {
-    restrict: 'EA',
-    replace: true,
-    templateUrl: 'template/facet-value-list/facet-value-list.html',
-    transclude: false,
-    require: 'facetValueList',
-    scope: {
-      sparqlService: '=',
-      facetTreeConfig: '=',
-      path: '=',
-      onSelect: '&select'
-    },
-    controller: 'FacetValueListCtrl'
-  };
-});
-;
-angular.module('ui.jassa.sparql-table', []).controller('SparqlTableCtrl', [
-  '$scope',
-  '$rootScope',
-  '$q',
-  function ($scope, $rootScope, $q) {
-    var rdf = Jassa.rdf;
-    var sparql = Jassa.sparql;
-    var service = Jassa.service;
-    var util = Jassa.util;
-    var sponate = Jassa.sponate;
-    var syncTableMod = function (sortInfo, tableMod) {
-      util.ArrayUtils.clear(tableMod.getSortConditions());
-      for (var i = 0; i < sortInfo.fields.length; ++i) {
-        var columnId = sortInfo.fields[i];
-        var dir = sortInfo.directions[i];
-        var d = 0;
-        if (dir === 'asc') {
-          d = 1;
-        } else if (dir === 'desc') {
-          d = -1;
-        }
-        if (d !== 0) {
-          var sortCondition = new facete.SortCondition(columnId, d);
-          tableMod.getSortConditions().push(sortCondition);
-        }
-      }
-    };
-    var createTableService = function () {
-      var config = $scope.config;
-      var sparqlService = $scope.sparqlService;
-      var queryFactory = config ? config.queryFactory : null;
-      var query = queryFactory ? queryFactory.createQuery() : null;
-      var result = new service.SparqlTableService(sparqlService, query);
-      return result;
-    };
-    $scope.$watch('gridOptions.sortInfo', function (sortInfo) {
-      var config = $scope.config;
-      var tableMod = config ? config.tableMod : null;
-      if (tableMod != null) {
-        syncTableMod(sortInfo, tableMod);
-      }
-      $scope.refreshData();
-    }, true);
-    $scope.$watch('[pagingOptions, filterOptions]', function (newVal, oldVal) {
-      $scope.refreshData();
-    }, true);
-    $scope.ObjectUtils = util.ObjectUtils;
-    $scope.$watch('[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(config)]', function (newVal, oldVal) {
-      $scope.refresh();
-    }, true);
-    $scope.totalServerItems = 0;
-    $scope.pagingOptions = {
-      pageSizes: [
-        10,
-        50,
-        100
-      ],
-      pageSize: 10,
-      currentPage: 1
-    };
-    $scope.refresh = function () {
-      var tableService = createTableService();
-      $scope.refreshSchema(tableService);
-      $scope.refreshPageCount(tableService);
-      $scope.refreshData(tableService);
-    };
-    $scope.refreshSchema = function (tableService) {
-      tableService = tableService || createTableService();
-      $scope.colDefs = tableService.getSchema();
-    };
-    $scope.refreshPageCount = function (tableService) {
-      tableService = tableService || createTableService();
-      var promise = tableService.fetchCount();
-      Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $scope, function (countInfo) {
-        // Note: There is also countInfo.hasMoreItems and countInfo.limit (limit where the count was cut off)
-        $scope.totalServerItems = countInfo.count;
-      });
-    };
-    $scope.refreshData = function (tableService) {
-      tableService = tableService || createTableService();
-      var page = $scope.pagingOptions.currentPage;
-      var pageSize = $scope.pagingOptions.pageSize;
-      var offset = (page - 1) * pageSize;
-      var promise = tableService.fetchData(pageSize, offset);
-      Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $scope, function (data) {
-        $scope.myData = data;
-      });
-    };
-    var plugins = [];
-    if (ngGridFlexibleHeightPlugin) {
-      // js-hint will complain on lower case ctor call
-      var PluginCtor = ngGridFlexibleHeightPlugin;
-      plugins.push(new PluginCtor(30));
-    }
-    $scope.myData = [];
-    $scope.gridOptions = {
-      data: 'myData',
-      enablePaging: true,
-      useExternalSorting: true,
-      showFooter: true,
-      totalServerItems: 'totalServerItems',
-      enableHighlighting: true,
-      sortInfo: {
-        fields: [],
-        directions: [],
-        columns: []
-      },
-      pagingOptions: $scope.pagingOptions,
-      filterOptions: $scope.filterOptions,
-      plugins: plugins,
-      columnDefs: 'colDefs'
-    };
-    $scope.refresh();
-  }
-]).directive('sparqlTable', [
-  '$parse',
-  function ($parse) {
-    return {
-      restrict: 'EA',
-      replace: true,
-      templateUrl: 'template/sparql-table/sparql-table.html',
-      controller: 'SparqlTableCtrl',
-      scope: {
-        sparqlService: '=',
-        config: '=',
-        onSelect: '&select',
-        onUnselect: '&unselect'
-      },
-      link: function (scope, element, attrs) {
-      }
-    };
-  }
-]);
-;
-/*    
-var createQueryCountQuery = function(query, outputVar) {
-    //TODO Deterimine whether a sub query is needed
-    var result = new sparql.Query();
-    var e = new sparql.ElementSubQuery(query);
-    result.getElements().push(e);
-    result.getProjectVars().add(outputVar, new sparql.E_Count());
-    
-    return result;
-};
-*/
-angular.module('ui.jassa.template-list', []).controller('TemplateListCtrl', [
-  '$scope',
-  function ($scope) {
-  }
-]).directive('templateList', [
-  '$compile',
-  function ($compile) {
-    return {
-      restrict: 'EA',
-      replace: true,
-      templateUrl: 'template/template-list/template-list.html',
-      transclude: true,
-      scope: {
-        templates: '=',
-        data: '=',
-        context: '='
-      },
-      controller: 'TemplateListCtrl',
-      compile: function () {
-        return {
-          pre: function (scope, elm, attrs) {
-            angular.forEach(scope.templates, function (template) {
-              var li = $compile('<li style="display: inline;"></li>')(scope);
-              var element = $compile(template)(scope);
-              li.append(element);
-              elm.append(li);
-            });
-          }
-        };
-      }
-    };
-  }
-]);
-;
-angular.module('template/constraint-list/constraint-list.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/constraint-list/constraint-list.html', '<ul>\n' + '  \t<li ng-show="constraints.length == 0" style="color: #aaaaaa;">(no constraints)</li>\n' + '   \t<li ng-repeat="constraint in constraints"><a href="" ng-click="removeConstraint(constraint)">{{constraint.label}}</a></li>\n' + '</ul>\n' + '');
-  }
-]);
-angular.module('template/facet-tree/facet-dir-content.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/facet-tree/facet-dir-content.html', '\n' + '<!-- ng-show="dirset.pageCount > 1 || dirset.children.length > 5" -->\n' + '\n' + '\n' + '<!--                 \t\t<div ng-show="dirset.pageCount != 1" style="width:100%; background-color: #eeeeff"> -->\n' + '<!--     \t\t         \t\t<pagination style="padding-left: {{16 * (dirset.path.getLength() + 1)}}px" class="pagination-tiny" max-size="7" total-items="dirset.childFacetCount" page="dirset.pageIndex" boundary-links="true" rotate="false" on-select-page="selectFacetPage(page, facet)" first-text="<<" previous-text="<" next-text=">" last-text=">>"></pagination> -->\n' + '<!--                 \t\t</div> -->\n' + '\n' + '<span ng-show="dirset.children.length == 0"\n' + '\tstyle="color: #aaaaaa; padding-left: {{16*(dirset.path.getLength()+1)}}px">(no\n' + '\tentries)</span>\n' + '\n' + '<div style="padding-left: {{16*(dirset.path.getLength()+1)}}px"\n' + '\tng-repeat="facet in dirset.children"\n' + '\tng-include="\'template/facet-tree/facet-tree-item.html\'" ></div>\n' + '\n' + '\n' + '');
-  }
-]);
-angular.module('template/facet-tree/facet-dir-ctrl.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/facet-tree/facet-dir-ctrl.html', '<div style="width: 100%; background-color: #eeeeff;">\n' + '\t<div style="padding-right: 16px; padding-left: {{16*(dirset.path.getLength()+1)}}px">\n' + '\n' + '\t\t<form class="form-inline" role="form" ng-submit="doFilter(dirset.path, dirset.filter.filterString)">\n' + '\n' + '\t\t\t<div class="form-group">\n' + '\t\t\t\t<input type="text" class="form-control input-sm" placeholder="Filter" ng-model="dirset.filter.filterString" value="{{dirset.filter.filterString}}" />\n' + '\t\t\t</div>\n' + '\t\t\t<div class="form-group">\n' + '\t\t\t\t<button type="submit" class="btn btn-default input-sm">Filter</button>\n' + '\t\t\t</div>\n' + '\t\t\t<div class="form-group" ng-if="dirset.pageCount > 1" style="background-color: #eeeeff">\n' + '\t\t\t\t<pagination\n' + '\t\t\t\t\tstyle="padding-left: {{16*(dirset.path.getLength()+1)}}px"\n' + '\t\t\t\t\tclass="pagination-tiny" max-size="7"\n' + '\t\t\t\t\ttotal-items="dirset.childFacetCount" page="dirset.pageIndex"\n' + '\t\t\t\t\tboundary-links="true" rotate="false"\n' + '\t\t\t\t\ton-select-page="selectFacetPage(page, facet)" first-text="<<"\n' + '\t\t\t\t\tprevious-text="<" next-text=">" last-text=">>">\n' + '\t\t\t\t</pagination>\n' + '\t\t\t</div>\n' + '\n' + '\t\t</form>\n' + '\t</div>\n' + '</div>\n' + '\n' + '');
-  }
-]);
-angular.module('template/facet-tree/facet-tree-item.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/facet-tree/facet-tree-item.html', '<div ng-class="{\'frame\': facet.isExpanded}">\n' + '\n' + '\t<div class="facet-row" ng-class="{\'highlite\': facet.isExpanded}" ng-mouseover="setFacetHover(facet, true)" ng-mouseleave="setFacetHover(facet, false)">\n' + '\t\t<a ng-show="facet.isExpanded" href="" ng-click="toggleCollapsed(facet.item.getPath())"><span class="glyphicon glyphicon-chevron-down"></span></a>\n' + '\t\t<a ng-show="!facet.isExpanded" href="" ng-click="toggleCollapsed(facet.item.getPath())"><span class="glyphicon glyphicon-chevron-right"></span></a>\n' + '\n' + '\t\t<a href="" title="Showing incoming facets. Click to show outgoing facets." ng-if="facet.isExpanded && facet.isIncomingActive === true" ng-click="selectOutgoing(facet.item.getPath())"><span class="glyphicon glyphicon-arrow-left"></span></a>\n' + '\t\t<a href="" title="Showing outgoing facets. Click to show incoming facets." ng-if="facet.isExpanded && facet.isOutgoingActive === true" ng-click="selectIncoming(facet.item.getPath())"><span class="glyphicon glyphicon-arrow-right"></span></a>\n' + '\n' + '\n' + '\t\t<a data-rdf-term="{{facet.item.getNode().toString()}}" title="{{facet.item.getNode().getUri()}}" href="" ng-click="toggleSelected(facet.item.getPath())">{{facet.item.getDoc().displayLabel}}</a>\n' + '\n' + '\t\t<template-list style="list-style:none; display: inline; padding-left: 0px;" templates="plugins" data="facet" context="pluginContext"></template-list>\n' + '\n' + '\t\t<span style="float: right" class="badge" ng-bind-html="(facet.item.getDistinctValueCount() == null || facet.item.getDistinctValueCount() < 0) ? \'&#8230;\' : (\'\' + facet.item.getDistinctValueCount())"></span>\n' + '\t\t\n' + '\t\t<div ng-if="facet.isExpanded && facet.isHovered && facet.isIncomingActive === true" style="width:100%" ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-ctrl.html\'"></div>\n' + '\t\t<div ng-if="facet.isExpanded && facet.isHovered && facet.isOutgoingActive === true" style="width:100%" ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-ctrl.html\'"></div>\n' + '\t</div>\n' + '\t<div ng-if="facet.isExpanded" style="width:100%"> \n' + '\n' + '\n' + '\t\t\t<div ng-if="facet.isExpanded && facet.isIncomingActive === true" ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div>\n' + '\t\t\t<div ng-if="facet.isExpanded && facet.isOutgoingActive === true" ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div>\n' + '\n' + '\n' + '<!-- \t\t<tabset class="tabset-small"> -->\n' + '<!-- \t\t\t<tab heading="Incoming Facets" active="{{facet.isIncomingActive === true}}" select="selectIncoming(facet.item.getPath())"> -->\n' + '<!-- \t\t\t\t<div ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div> -->\n' + '<!-- \t\t\t</tab> -->\n' + '<!-- \t\t\t<tab heading="Outgoing Facets" active="{{facet.isOutgoingActive === true}}" select="selectOutgoing(facet.item.getPath())">\t\t\t\t\t -->\n' + '<!-- \t\t\t\t<div ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div> -->\n' + '<!-- \t\t\t</tab> -->\n' + '\t\t</tabset>\n' + '\t</div>\n' + '</div>\n' + '');
-  }
-]);
-angular.module('template/facet-value-list/facet-value-list.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/facet-value-list/facet-value-list.html', '<div class="frame">\n' + '\t<form ng-submit="filterTable(filterText)">\n' + '\t    <input type="text" ng-model="filterText" />\n' + '\t\t<input class="btn-primary" type="submit" value="Filter" />\n' + '\t</form>\n' + '\t<table>\n' + '              <tr><th>Value</th><th>Constrained</th></tr>\n' + '<!-- <th>Count</th> -->\n' + '\t    <tr ng-repeat="item in facetValues">\n' + '                  <td>{{item.displayLabel}}</td>\n' + '<!--                    <td>todo</td> -->\n' + '                  <td><input type="checkbox" ng-model="item.tags.isConstrainedEqual" ng-change="toggleConstraint(item)" /></td>\n' + '              </tr>\n' + '      \t</table>\n' + '  \t\t<pagination class="pagination-small" total-items="pagination.totalItems" page="pagination.currentPage" max-size="pagination.maxSize" boundary-links="true" rotate="false" num-pages="pagination.numPages"></pagination>\n' + '</div>\n' + '');
-  }
-]);
-angular.module('template/sparql-table/sparql-table.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/sparql-table/sparql-table.html', '<div>\n' + '<div ng-grid="gridOptions"></div>\n' + '</div>\n' + '');
-  }
-]);
-angular.module('template/template-list/template-list.html', []).run([
-  '$templateCache',
-  function ($templateCache) {
-    $templateCache.put('template/template-list/template-list.html', '<ul ng-show="templates.length > 0">\n' + '</ul>');
-  }
-]);
 /*! jQuery UI - v1.10.3 - 2013-05-03
 * http://jqueryui.com
 * Includes: jquery.ui.core.js, jquery.ui.widget.js, jquery.ui.mouse.js, jquery.ui.draggable.js, jquery.ui.droppable.js, jquery.ui.resizable.js, jquery.ui.selectable.js, jquery.ui.sortable.js, jquery.ui.effect.js, jquery.ui.accordion.js, jquery.ui.autocomplete.js, jquery.ui.button.js, jquery.ui.datepicker.js, jquery.ui.dialog.js, jquery.ui.effect-blind.js, jquery.ui.effect-bounce.js, jquery.ui.effect-clip.js, jquery.ui.effect-drop.js, jquery.ui.effect-explode.js, jquery.ui.effect-fade.js, jquery.ui.effect-fold.js, jquery.ui.effect-highlight.js, jquery.ui.effect-pulsate.js, jquery.ui.effect-scale.js, jquery.ui.effect-shake.js, jquery.ui.effect-slide.js, jquery.ui.effect-transfer.js, jquery.ui.menu.js, jquery.ui.position.js, jquery.ui.progressbar.js, jquery.ui.slider.js, jquery.ui.spinner.js, jquery.ui.tabs.js, jquery.ui.tooltip.js
@@ -59438,7 +59322,796 @@ angular.module('template/template-list/template-list.html', []).run([
  * jassa-ui-angular
  * https://github.com/GeoKnow/Jassa-UI-Angular
 
- * Version: 0.0.1-SNAPSHOT - 2014-04-03
+ * Version: 0.0.3-SNAPSHOT - 2014-05-22
+ * License: MIT
+ */
+angular.module('ui.jassa', [
+  'ui.jassa.tpls',
+  'ui.jassa.constraint-list',
+  'ui.jassa.facet-tree',
+  'ui.jassa.facet-typeahead',
+  'ui.jassa.facet-value-list',
+  'ui.jassa.resizable',
+  'ui.jassa.sparql-table',
+  'ui.jassa.template-list'
+]);
+angular.module('ui.jassa.tpls', [
+  'template/constraint-list/constraint-list.html',
+  'template/facet-tree/facet-dir-content.html',
+  'template/facet-tree/facet-dir-ctrl.html',
+  'template/facet-tree/facet-tree-item.html',
+  'template/facet-value-list/facet-value-list.html',
+  'template/sparql-table/sparql-table.html',
+  'template/template-list/template-list.html'
+]);
+angular.module('ui.jassa.constraint-list', []).controller('ConstraintListCtrl', [
+  '$scope',
+  '$rootScope',
+  function ($scope, $rootScope) {
+    var self = this;
+    //var constraintManager;
+    var updateConfig = function () {
+      var isConfigured = $scope.facetTreeConfig;
+      //debugger;
+      $scope.constraintManager = isConfigured ? $scope.facetTreeConfig.getFacetConfig().getConstraintManager() : null;
+    };
+    var update = function () {
+      updateConfig();
+      self.refresh();
+    };
+    $scope.ObjectUtils = Jassa.util.ObjectUtils;
+    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig)]';
+    $scope.$watch(watchList, function () {
+      update();
+    }, true);
+    var renderConstraint = function (constraint) {
+      var type = constraint.getName();
+      var result;
+      switch (type) {
+      case 'equal':
+        var pathStr = '' + constraint.getDeclaredPath();
+        if (pathStr === '') {
+          pathStr = '()';
+        }
+        result = pathStr + ' = ' + constraint.getValue();
+        break;
+      default:
+        result = constraint;
+      }
+      return result;
+    };
+    self.refresh = function () {
+      var constraintManager = $scope.constraintManager;
+      var items;
+      if (!constraintManager) {
+        items = [];
+      } else {
+        var constraints = constraintManager.getConstraints();
+        items = _(constraints).map(function (constraint) {
+          var r = {
+              constraint: constraint,
+              label: '' + renderConstraint(constraint)
+            };
+          return r;
+        });
+      }
+      $scope.constraints = items;
+    };
+    $scope.removeConstraint = function (item) {
+      $scope.constraintManager.removeConstraint(item.constraint);  //$scope.$emit('facete:constraintsChanged');
+    };
+  }
+]).directive('constraintList', function () {
+  return {
+    restrict: 'EA',
+    replace: true,
+    templateUrl: 'template/constraint-list/constraint-list.html',
+    transclude: false,
+    require: 'constraintList',
+    scope: {
+      sparqlService: '=',
+      facetTreeConfig: '=',
+      onSelect: '&select'
+    },
+    controller: 'ConstraintListCtrl'
+  };
+});
+;
+angular.module('ui.jassa.facet-tree', []).controller('FacetTreeDirContentCtrl', [
+  '$rootScope',
+  '$scope',
+  '$q',
+  function ($rootScope, $scope, $q) {
+  }
+]).directive('facetTreeDirContent', function ($parse) {
+  return {
+    restrict: 'EA',
+    replace: true,
+    templateUrl: 'template/facet-tree/facet-tree-content.html',
+    transclude: false,
+    require: 'facetTree',
+    scope: {
+      sparqlService: '=',
+      facetTreeConfig: '=',
+      plugins: '=',
+      onSelect: '&select'
+    },
+    controller: 'FacetTreeDirContentCtrl',
+    compile: function (elm, attrs) {
+      return function link(scope, elm, attrs, controller) {
+      };
+    }
+  };
+});
+;
+angular.module('ui.jassa.facet-tree', ['ui.jassa.template-list']).controller('FacetTreeCtrl', [
+  '$rootScope',
+  '$scope',
+  '$q',
+  function ($rootScope, $scope, $q) {
+    var self = this;
+    var updateFacetTreeService = function () {
+      var isConfigured = $scope.sparqlService && $scope.facetTreeConfig;
+      //debugger;
+      $scope.facetTreeService = isConfigured ? Jassa.facete.FaceteUtils.createFacetTreeService($scope.sparqlService, $scope.facetTreeConfig, null) : null;
+    };
+    var update = function () {
+      updateFacetTreeService();
+      //controller.refresh();
+      self.refresh();
+    };
+    $scope.setFacetHover = function (facet, isHovered) {
+      facet.isHovered = isHovered;
+      if (facet.incoming) {
+        facet.incoming.isHovered = isHovered;
+      }
+      if (facet.outgoing) {
+        facet.outgoing.isHovered = isHovered;
+      }
+    };
+    $scope.ObjectUtils = Jassa.util.ObjectUtils;
+    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig)]';
+    $scope.$watch(watchList, function () {
+      update();
+    }, true);
+    $scope.doFilter = function (path, filterString) {
+      $scope.facetTreeConfig.getPathToFilterString().put(path, filterString);
+      self.refresh();
+    };
+    self.refresh = function () {
+      var facet = $scope.facet;
+      var startPath = facet ? facet.item.getPath() : new Jassa.facete.Path();
+      if ($scope.facetTreeService) {
+        var facetTreeTagger = Jassa.facete.FaceteUtils.createFacetTreeTagger($scope.facetTreeConfig.getPathToFilterString());
+        //console.log('scopefacets', $scope.facet);             
+        var promise = $scope.facetTreeService.fetchFacetTree(startPath);
+        Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $rootScope).then(function (data) {
+          facetTreeTagger.applyTags(data);
+          $scope.facet = data;
+        });
+      } else {
+        $scope.facet = null;
+      }
+    };
+    $scope.toggleCollapsed = function (path) {
+      Jassa.util.CollectionUtils.toggleItem($scope.facetTreeConfig.getExpansionSet(), path);
+      var val = $scope.facetTreeConfig.getExpansionMap().get(path);
+      if (val == null) {
+        $scope.facetTreeConfig.getExpansionMap().put(path, 1);
+      }
+      self.refresh();
+    };
+    $scope.selectIncoming = function (path) {
+      console.log('Incoming selected at path ' + path);
+      if ($scope.facetTreeConfig) {
+        var val = $scope.facetTreeConfig.getExpansionMap().get(path);
+        if (val != 2) {
+          $scope.facetTreeConfig.getExpansionMap().put(path, 2);
+          self.refresh();
+        }
+      }
+    };
+    $scope.selectOutgoing = function (path) {
+      console.log('Outgoing selected at path ' + path);
+      if ($scope.facetTreeConfig) {
+        var val = $scope.facetTreeConfig.getExpansionMap().get(path);
+        if (val != 1) {
+          $scope.facetTreeConfig.getExpansionMap().put(path, 1);
+          self.refresh();
+        }
+      }
+    };
+    $scope.selectFacetPage = function (page, facet) {
+      var path = facet.item.getPath();
+      var state = $scope.facetTreeConfig.getFacetStateProvider().getFacetState(path);
+      var resultRange = state.getResultRange();
+      console.log('Facet state for path ' + path + ': ' + state);
+      var limit = resultRange.getLimit() || 0;
+      var newOffset = limit ? (page - 1) * limit : null;
+      resultRange.setOffset(newOffset);
+      self.refresh();
+    };
+    $scope.toggleSelected = function (path) {
+      $scope.onSelect({ path: path });
+    };
+    $scope.toggleTableLink = function (path) {
+      //$scope.emit('facete:toggleTableLink');
+      tableMod.togglePath(path);
+      //$scope.$emit('')
+      // alert('yay' + JSON.stringify(tableMod.getPaths()));
+      $scope.$emit('facete:refresh');  //        var columnDefs = tableMod.getColumnDefs();
+                                       //        _(columnDefs).each(function(columnDef) {
+                                       //        });
+                                       //        tableMod.addColumnDef(null, new ns.ColumnDefPath(path));
+                                       //alert('yay ' + path);
+    };  //  $scope.$on('facete:refresh', function() {
+        //        $scope.refresh();
+        //  });
+  }
+]).directive('facetTree', function () {
+  return {
+    restrict: 'EA',
+    replace: true,
+    templateUrl: 'template/facet-tree/facet-tree-item.html',
+    transclude: false,
+    require: 'facetTree',
+    scope: {
+      sparqlService: '=',
+      facetTreeConfig: '=',
+      plugins: '=',
+      pluginContext: '=',
+      onSelect: '&select'
+    },
+    controller: 'FacetTreeCtrl',
+    compile: function (elm, attrs) {
+      return function link(scope, elm, attrs, controller) {
+      };
+    }
+  };
+});
+;
+angular.module('ui.jassa.facet-typeahead', []).directive('facetTypeahead', [
+  '$compile',
+  '$q',
+  '$parse',
+  function ($compile, $q, $parse) {
+    var FacetTypeAheadServiceAngular = Class.create({
+        initialize: function ($scope, $q, configExpr, id) {
+          this.$scope = $scope;
+          this.$q = $q;
+          this.configExpr = configExpr;
+          this.id = id;
+        },
+        getSuggestions: function (filterString) {
+          var config = this.configExpr(this.$scope);
+          var sparqlService = config.sparqlService;
+          var fct = config.facetTreeConfig;
+          // Get the attributes from the config
+          var idToModelPathMapping = config.idToModelPathMapping;
+          var modelPathMapping = idToModelPathMapping[this.id];
+          if (!modelPathMapping) {
+            console.log('Cannot retrieve model-path mapping for facet-typeahead directive with id ' + id);
+            throw 'Bailing out';
+          }
+          var limit = modelPathMapping.limit || config.defaultLimit || 10;
+          var offset = modelPathMapping.offset || config.defaultOffset || 0;
+          var pathSpec = modelPathMapping.pathExpr(this.scope);
+          var path = FacetTypeAheadUtils.parsePathSpec(pathSpec);
+          // Hack - the facetService should only depend on FacetConfig
+          var tmp = fct.getFacetConfig();
+          var cm = tmp.getConstraintManager();
+          var cmClone = cm.shallowClone();
+          var facetConfig = new Jassa.facete.FacetConfig();
+          facetConfig.setConstraintManager(cmClone);
+          facetConfig.setBaseConcept(tmp.getBaseConcept());
+          facetConfig.setRootFacetNode(tmp.getRootFacetNode());
+          facetConfig.setLabelMap(tmp.getLabelMap());
+          var facetTreeConfig = new Jassa.facete.FacetTreeConfig();
+          //facetTreeConfig.setFacetConfig(facetConfig);
+          // TODO HACK Use a setter instead
+          facetTreeConfig.facetConfig = facetConfig;
+          // Compile constraints
+          var self = this;
+          var constraintSpecs = _(idToModelPathMapping).map(function (item) {
+              var valStr = item.modelExpr(self.$scope);
+              if (!valStr || valStr.trim() === '') {
+                return null;
+              }
+              var val = rdf.NodeFactory.createPlainLiteral(valStr);
+              var pathSpec = item.pathExpr(self.$scope);
+              var path = FacetTypeAheadUtils.parsePathSpec(pathSpec);
+              var r = new Jassa.facete.ConstraintSpecPathValue('regex', path, val);
+              return r;
+            });
+          constraintSpecs = _(constraintSpecs).compact();
+          _(constraintSpecs).each(function (constraint) {
+            cmClone.addConstraint(constraint);
+          });
+          var facetValueService = new Jassa.facete.FacetValueService(sparqlService, facetTreeConfig);
+          var fetcher = facetValueService.createFacetValueFetcher(path, filterString);
+          var p1 = fetcher.fetchData(offset, limit);
+          //offset);
+          var p2 = fetcher.fetchCount();
+          var p3 = jQuery.when.apply(null, [
+              p1,
+              p2
+            ]).pipe(function (data, count) {
+              var r = {
+                  offset: this.offset,
+                  count: count,
+                  data: data
+                };
+              return r;
+            });
+          var p4 = p3.pipe(function (data) {
+              var r = _(data.data).map(function (item) {
+                  return item.displayLabel;
+                });
+              return r;
+            });
+          var result = Jassa.sponate.angular.bridgePromise(p4, this.$q.defer(), this.$scope.$root);
+          return result;
+        }
+      });
+    return {
+      restrict: 'A',
+      scope: true,
+      priority: 1001,
+      terminal: true,
+      compile: function (elem, attrs) {
+        if (!this.instanceId) {
+          this.instanceId = 0;
+        }
+        var instanceId = 'facetTypeAhead-' + this.instanceId++;
+        //console.log('INSTANCEID', instanceId);                
+        var modelExprStr = attrs['ngModel'];
+        var configExprStr = attrs['facetTypeahead'];
+        var pathExprStr = attrs['facetTypeaheadPath'];
+        // Remove the attribute to prevent endless loop in compilation
+        elem.removeAttr('facet-typeahead');
+        elem.removeAttr('facet-typeahead-path');
+        var newAttrVal = 'item for item in facetTypeAheadService.getSuggestions($viewValue)';
+        //var newAttrVal = 'item for item in getSuggestions($viewValue);'
+        //newAttrVal = $sanitize(newAttrVal);
+        elem.attr('typeahead', newAttrVal);
+        return {
+          pre: function (scope, elem, attrs) {
+            //                         var requiredAttrNames = ['ng-model', 'facet-typeahead', 'facet-typeahead-path']
+            //                         var attrExprs = {};
+            //                         _(requiredAttrNames).each(function(attrName) {
+            //                             var exprStr = elem.attr(attrName);
+            //                             attrExprs[attrName] = $parse(exprStr);
+            //                         });
+            // TODO Check if any of the required attributes were left undefined
+            //                     },
+            //                     post: function(scope, elem, attrs) {
+            /*
+                    var modelExprStr = this.modelExprStr;
+                    var configExprStr = this.configExprStr;
+                    var pathExprStr = this.pathExprStr;
+                    */
+            var modelExpr = $parse(modelExprStr);
+            var pathExpr = $parse(pathExprStr);
+            var configExpr = $parse(configExprStr);
+            // Note: We do not need to watch the config, because we retrieve the most
+            // recent values when the suggestions are requested                        
+            // However, we need to register/unregister the directive from the config object when this changes
+            scope.$watch(configExprStr, function (newConfig, oldConfig) {
+              if (!newConfig) {
+                return;
+              }
+              if (!newConfig.idToModelPathMapping) {
+                newConfig.idToModelPathMapping = {};
+              }
+              newConfig.idToModelPathMapping[instanceId] = {
+                modelExpr: modelExpr,
+                modelExprStr: modelExprStr,
+                pathExprStr: pathExprStr,
+                pathExpr: pathExpr
+              };
+              // TODO Unregister from old config
+              if (oldConfig && oldConfig != newConfig && oldConfig.modelToPathMapping) {
+                delete oldConfig.idToModelPathMapping[instanceId];
+              }
+            });
+            scope.facetTypeAheadService = new FacetTypeAheadServiceAngular(scope, $q, configExpr, instanceId);
+          },
+          post: function (scope, elem, attr) {
+            // Continue processing any further directives
+            $compile(elem)(scope);
+          }
+        };
+      }
+    };
+  }
+]);
+;
+angular.module('ui.jassa.facet-value-list', []).controller('FacetValueListCtrl', [
+  '$rootScope',
+  '$scope',
+  '$q',
+  function ($rootScope, $scope, $q) {
+    $scope.filterText = '';
+    $scope.pagination = {
+      totalItems: 0,
+      currentPage: 1,
+      maxSize: 5
+    };
+    //$scope.path = null;
+    var facetValueService = null;
+    var self = this;
+    var updateFacetTreeService = function () {
+      var isConfigured = $scope.sparqlService && $scope.facetTreeConfig && $scope.path;
+      facetValueService = isConfigured ? new Jassa.facete.FacetValueService($scope.sparqlService, $scope.facetTreeConfig) : null;
+    };
+    var update = function () {
+      updateFacetTreeService();
+      self.refresh();
+    };
+    $scope.ObjectUtils = Jassa.util.ObjectUtils;
+    var watchList = '[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(facetTreeConfig), "" + path, pagination.currentPage]';
+    $scope.$watch(watchList, function () {
+      update();
+    }, true);
+    $scope.toggleConstraint = function (item) {
+      var constraintManager = facetValueService.getFacetTreeConfig().getFacetConfig().getConstraintManager();
+      var constraint = new Jassa.facete.ConstraintSpecPathValue('equal', item.path, item.node);
+      // TODO Integrate a toggle constraint method into the filterManager
+      constraintManager.toggleConstraint(constraint);
+    };
+    self.refresh = function () {
+      var path = $scope.path;
+      if (!facetValueService || !path) {
+        $scope.totalItems = 0;
+        $scope.facetValues = [];
+        return;
+      }
+      var fetcher = facetValueService.createFacetValueFetcher($scope.path, $scope.filterText);
+      var countPromise = fetcher.fetchCount();
+      var pageSize = 10;
+      var offset = ($scope.pagination.currentPage - 1) * pageSize;
+      var dataPromise = fetcher.fetchData(offset, pageSize);
+      Jassa.sponate.angular.bridgePromise(countPromise, $q.defer(), $scope.$root, function (count) {
+        $scope.pagination.totalItems = count;
+      });
+      Jassa.sponate.angular.bridgePromise(dataPromise, $q.defer(), $scope.$root, function (items) {
+        $scope.facetValues = items;
+      });
+    };
+    $scope.filterTable = function (filterText) {
+      $scope.filterText = filterText;
+      update();
+    };  /*
+    $scope.$on('facete:facetSelected', function(ev, path) {
+
+        $scope.currentPage = 1;
+        $scope.path = path;
+        
+        updateItems();
+    });
+    
+    $scope.$on('facete:constraintsChanged', function() {
+        updateItems(); 
+    });
+    */
+        //  $scope.firstText = '<<';
+        //  $scope.previousText = '<';
+        //  $scope.nextText = '>';
+        //  $scope.lastText = '>>';
+  }
+]).directive('facetValueList', function () {
+  return {
+    restrict: 'EA',
+    replace: true,
+    templateUrl: 'template/facet-value-list/facet-value-list.html',
+    transclude: false,
+    require: 'facetValueList',
+    scope: {
+      sparqlService: '=',
+      facetTreeConfig: '=',
+      path: '=',
+      onSelect: '&select'
+    },
+    controller: 'FacetValueListCtrl'
+  };
+});
+;
+angular.module('ui.jassa.resizable', []).directive('resizable', function () {
+  //var resizableConfig = {...};
+  return {
+    restrict: 'A',
+    scope: {
+      resizable: '=',
+      onResize: '&onResize',
+      onResizeInit: '&onResizeInit',
+      bounds: '='
+    },
+    compile: function () {
+      return {
+        post: function (scope, elem, attrs) {
+          if (!scope.bounds) {
+            scope.bounds = {};
+          }
+          var isInitialized = false;
+          var onConfigChange = function (newConfig) {
+            //console.log('Setting config', newConfig);
+            if (isInitialized) {
+              jQuery(elem).resizable('destroy');
+            }
+            jQuery(elem).resizable(newConfig);
+            isInitialized = true;
+          };
+          var propNames = [
+              'top',
+              'bottom',
+              'width',
+              'height'
+            ];
+          var getCssPropMap = function (propNames) {
+            var data = elem.prop('style');
+            var result = _(data).pick(propNames);
+            return result;
+          };
+          var setCssPropMap = function (propMap) {
+            _(propMap).each(function (v, k) {
+              //console.log('css prop', k, v);
+              elem.css(k, v);
+            });
+          };
+          var bounds = getCssPropMap(propNames);
+          angular.copy(bounds, scope.bounds);
+          if (scope.onResizeInit) {
+            scope.onResizeInit({ bounds: bounds });
+          }
+          var onBoundsChange = function (newBounds, oldBounds) {
+            //console.log('setting bounds', newBounds, oldBounds);
+            setCssPropMap(newBounds);
+          };
+          scope.$watch('bounds', onBoundsChange, true);
+          jQuery(elem).on('resizestop', function (evt, ui) {
+            var bounds = getCssPropMap(propNames);
+            angular.copy(bounds, scope.bounds);
+            //console.log('sigh', bounds);
+            if (scope.onResize) {
+              scope.onResize(evt, ui, bounds);
+            }
+            if (!scope.$$phase) {
+              scope.$apply();
+            }
+          });
+          scope.$watch('resizable', onConfigChange);  //onConfigChange(scope.resizable);
+        }
+      };
+    }
+  };
+});
+;
+angular.module('ui.jassa.sparql-table', []).controller('SparqlTableCtrl', [
+  '$scope',
+  '$rootScope',
+  '$q',
+  function ($scope, $rootScope, $q) {
+    var rdf = Jassa.rdf;
+    var sparql = Jassa.sparql;
+    var service = Jassa.service;
+    var util = Jassa.util;
+    var sponate = Jassa.sponate;
+    var syncTableMod = function (sortInfo, tableMod) {
+      util.ArrayUtils.clear(tableMod.getSortConditions());
+      for (var i = 0; i < sortInfo.fields.length; ++i) {
+        var columnId = sortInfo.fields[i];
+        var dir = sortInfo.directions[i];
+        var d = 0;
+        if (dir === 'asc') {
+          d = 1;
+        } else if (dir === 'desc') {
+          d = -1;
+        }
+        if (d !== 0) {
+          var sortCondition = new facete.SortCondition(columnId, d);
+          tableMod.getSortConditions().push(sortCondition);
+        }
+      }
+    };
+    var createTableService = function () {
+      var config = $scope.config;
+      var sparqlService = $scope.sparqlService;
+      var queryFactory = config ? config.queryFactory : null;
+      var query = queryFactory ? queryFactory.createQuery() : null;
+      var result = new service.SparqlTableService(sparqlService, query);
+      return result;
+    };
+    $scope.$watch('gridOptions.sortInfo', function (sortInfo) {
+      var config = $scope.config;
+      var tableMod = config ? config.tableMod : null;
+      if (tableMod != null) {
+        syncTableMod(sortInfo, tableMod);
+      }
+      $scope.refreshData();
+    }, true);
+    $scope.$watch('[pagingOptions, filterOptions]', function (newVal, oldVal) {
+      $scope.refreshData();
+    }, true);
+    $scope.ObjectUtils = util.ObjectUtils;
+    $scope.$watch('[ObjectUtils.hashCode(sparqlService), ObjectUtils.hashCode(config)]', function (newVal, oldVal) {
+      $scope.refresh();
+    }, true);
+    $scope.totalServerItems = 0;
+    $scope.pagingOptions = {
+      pageSizes: [
+        10,
+        50,
+        100
+      ],
+      pageSize: 10,
+      currentPage: 1
+    };
+    $scope.refresh = function () {
+      var tableService = createTableService();
+      $scope.refreshSchema(tableService);
+      $scope.refreshPageCount(tableService);
+      $scope.refreshData(tableService);
+    };
+    $scope.refreshSchema = function (tableService) {
+      tableService = tableService || createTableService();
+      $scope.colDefs = tableService.getSchema();
+    };
+    $scope.refreshPageCount = function (tableService) {
+      tableService = tableService || createTableService();
+      var promise = tableService.fetchCount();
+      Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $scope, function (countInfo) {
+        // Note: There is also countInfo.hasMoreItems and countInfo.limit (limit where the count was cut off)
+        $scope.totalServerItems = countInfo.count;
+      });
+    };
+    $scope.refreshData = function (tableService) {
+      tableService = tableService || createTableService();
+      var page = $scope.pagingOptions.currentPage;
+      var pageSize = $scope.pagingOptions.pageSize;
+      var offset = (page - 1) * pageSize;
+      var promise = tableService.fetchData(pageSize, offset);
+      Jassa.sponate.angular.bridgePromise(promise, $q.defer(), $scope, function (data) {
+        $scope.myData = data;
+      });
+    };
+    var plugins = [];
+    if (ngGridFlexibleHeightPlugin) {
+      // js-hint will complain on lower case ctor call
+      var PluginCtor = ngGridFlexibleHeightPlugin;
+      plugins.push(new PluginCtor(30));
+    }
+    $scope.myData = [];
+    $scope.gridOptions = {
+      data: 'myData',
+      enablePaging: true,
+      useExternalSorting: true,
+      showFooter: true,
+      totalServerItems: 'totalServerItems',
+      enableHighlighting: true,
+      sortInfo: {
+        fields: [],
+        directions: [],
+        columns: []
+      },
+      pagingOptions: $scope.pagingOptions,
+      filterOptions: $scope.filterOptions,
+      plugins: plugins,
+      columnDefs: 'colDefs'
+    };
+    $scope.refresh();
+  }
+]).directive('sparqlTable', [
+  '$parse',
+  function ($parse) {
+    return {
+      restrict: 'EA',
+      replace: true,
+      templateUrl: 'template/sparql-table/sparql-table.html',
+      controller: 'SparqlTableCtrl',
+      scope: {
+        sparqlService: '=',
+        config: '=',
+        onSelect: '&select',
+        onUnselect: '&unselect'
+      },
+      link: function (scope, element, attrs) {
+      }
+    };
+  }
+]);
+;
+/*    
+var createQueryCountQuery = function(query, outputVar) {
+    //TODO Deterimine whether a sub query is needed
+    var result = new sparql.Query();
+    var e = new sparql.ElementSubQuery(query);
+    result.getElements().push(e);
+    result.getProjectVars().add(outputVar, new sparql.E_Count());
+    
+    return result;
+};
+*/
+angular.module('ui.jassa.template-list', []).controller('TemplateListCtrl', [
+  '$scope',
+  function ($scope) {
+  }
+]).directive('templateList', [
+  '$compile',
+  function ($compile) {
+    return {
+      restrict: 'EA',
+      replace: true,
+      templateUrl: 'template/template-list/template-list.html',
+      transclude: true,
+      scope: {
+        templates: '=',
+        data: '=',
+        context: '='
+      },
+      controller: 'TemplateListCtrl',
+      compile: function () {
+        return {
+          pre: function (scope, elm, attrs) {
+            angular.forEach(scope.templates, function (template) {
+              var li = $compile('<li style="display: inline;"></li>')(scope);
+              var element = $compile(template)(scope);
+              li.append(element);
+              elm.append(li);
+            });
+          }
+        };
+      }
+    };
+  }
+]);
+;
+angular.module('template/constraint-list/constraint-list.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/constraint-list/constraint-list.html', '<ul>\n' + '  \t<li ng-show="constraints.length == 0" style="color: #aaaaaa;">(no constraints)</li>\n' + '   \t<li ng-repeat="constraint in constraints"><a href="" ng-click="removeConstraint(constraint)">{{constraint.label}}</a></li>\n' + '</ul>\n' + '');
+  }
+]);
+angular.module('template/facet-tree/facet-dir-content.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/facet-tree/facet-dir-content.html', '\n' + '<!-- ng-show="dirset.pageCount > 1 || dirset.children.length > 5" -->\n' + '\n' + '\n' + '<!--                 \t\t<div ng-show="dirset.pageCount != 1" style="width:100%; background-color: #eeeeff"> -->\n' + '<!--     \t\t         \t\t<pagination style="padding-left: {{16 * (dirset.path.getLength() + 1)}}px" class="pagination-tiny" max-size="7" total-items="dirset.childFacetCount" page="dirset.pageIndex" boundary-links="true" rotate="false" on-select-page="selectFacetPage(page, facet)" first-text="<<" previous-text="<" next-text=">" last-text=">>"></pagination> -->\n' + '<!--                 \t\t</div> -->\n' + '\n' + '<span ng-show="dirset.children.length == 0"\n' + '\tstyle="color: #aaaaaa; padding-left: {{16*(dirset.path.getLength()+1)}}px">(no\n' + '\tentries)</span>\n' + '\n' + '<div style="padding-left: {{16*(dirset.path.getLength()+1)}}px"\n' + '\tng-repeat="facet in dirset.children"\n' + '\tng-include="\'template/facet-tree/facet-tree-item.html\'" ></div>\n' + '\n' + '\n' + '');
+  }
+]);
+angular.module('template/facet-tree/facet-dir-ctrl.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/facet-tree/facet-dir-ctrl.html', '<div style="width: 100%; background-color: #eeeeff;">\n' + '\t<div style="padding-right: 16px; padding-left: {{16*(dirset.path.getLength()+1)}}px">\n' + '\n' + '\t\t<form class="form-inline" role="form" ng-submit="doFilter(dirset.path, dirset.filter.filterString)">\n' + '\n' + '\t\t\t<div class="form-group">\n' + '\t\t\t\t<input type="text" class="form-control input-sm" placeholder="Filter" ng-model="dirset.filter.filterString" value="{{dirset.filter.filterString}}" />\n' + '\t\t\t</div>\n' + '\t\t\t<div class="form-group">\n' + '\t\t\t\t<button type="submit" class="btn btn-default input-sm">Filter</button>\n' + '\t\t\t</div>\n' + '\t\t\t<div class="form-group" ng-if="dirset.pageCount > 1" style="background-color: #eeeeff">\n' + '\t\t\t\t<pagination\n' + '\t\t\t\t\tstyle="padding-left: {{16*(dirset.path.getLength()+1)}}px"\n' + '\t\t\t\t\tclass="pagination-tiny" max-size="7"\n' + '\t\t\t\t\ttotal-items="dirset.childFacetCount" page="dirset.pageIndex"\n' + '\t\t\t\t\tboundary-links="true" rotate="false"\n' + '\t\t\t\t\ton-select-page="selectFacetPage(page, facet)" first-text="<<"\n' + '\t\t\t\t\tprevious-text="<" next-text=">" last-text=">>">\n' + '\t\t\t\t</pagination>\n' + '\t\t\t</div>\n' + '\n' + '\t\t</form>\n' + '\t</div>\n' + '</div>\n' + '\n' + '');
+  }
+]);
+angular.module('template/facet-tree/facet-tree-item.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/facet-tree/facet-tree-item.html', '<div ng-class="{\'frame\': facet.isExpanded}">\n' + '\n' + '\t<div class="facet-row" ng-class="{\'highlite\': facet.isExpanded}" ng-mouseover="setFacetHover(facet, true)" ng-mouseleave="setFacetHover(facet, false)">\n' + '\t\t<a ng-show="facet.isExpanded" href="" ng-click="toggleCollapsed(facet.item.getPath())"><span class="glyphicon glyphicon-chevron-down"></span></a>\n' + '\t\t<a ng-show="!facet.isExpanded" href="" ng-click="toggleCollapsed(facet.item.getPath())"><span class="glyphicon glyphicon-chevron-right"></span></a>\n' + '\n' + '\t\t<a href="" title="Showing incoming facets. Click to show outgoing facets." ng-if="facet.isExpanded && facet.isIncomingActive === true" ng-click="selectOutgoing(facet.item.getPath())"><span class="glyphicon glyphicon-arrow-left"></span></a>\n' + '\t\t<a href="" title="Showing outgoing facets. Click to show incoming facets." ng-if="facet.isExpanded && facet.isOutgoingActive === true" ng-click="selectIncoming(facet.item.getPath())"><span class="glyphicon glyphicon-arrow-right"></span></a>\n' + '\n' + '\n' + '\t\t<a data-rdf-term="{{facet.item.getNode().toString()}}" title="{{facet.item.getNode().getUri()}}" href="" ng-click="toggleSelected(facet.item.getPath())">{{facet.item.getDoc().displayLabel}}</a>\n' + '\n' + '\t\t<template-list style="list-style:none; display: inline; padding-left: 0px;" templates="plugins" data="facet" context="pluginContext"></template-list>\n' + '\n' + '\t\t<span style="float: right" class="badge" ng-bind-html="(facet.item.getDistinctValueCount() == null || facet.item.getDistinctValueCount() < 0) ? \'&#8230;\' : (\'\' + facet.item.getDistinctValueCount())"></span>\n' + '\t\t\n' + '\t\t<div ng-if="facet.isExpanded && facet.isHovered && facet.isIncomingActive === true" style="width:100%" ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-ctrl.html\'"></div>\n' + '\t\t<div ng-if="facet.isExpanded && facet.isHovered && facet.isOutgoingActive === true" style="width:100%" ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-ctrl.html\'"></div>\n' + '\t</div>\n' + '\t<div ng-if="facet.isExpanded" style="width:100%"> \n' + '\n' + '\n' + '\t\t\t<div ng-if="facet.isExpanded && facet.isIncomingActive === true" ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div>\n' + '\t\t\t<div ng-if="facet.isExpanded && facet.isOutgoingActive === true" ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div>\n' + '\n' + '\n' + '<!-- \t\t<tabset class="tabset-small"> -->\n' + '<!-- \t\t\t<tab heading="Incoming Facets" active="{{facet.isIncomingActive === true}}" select="selectIncoming(facet.item.getPath())"> -->\n' + '<!-- \t\t\t\t<div ng-repeat="dirset in [facet.incoming]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div> -->\n' + '<!-- \t\t\t</tab> -->\n' + '<!-- \t\t\t<tab heading="Outgoing Facets" active="{{facet.isOutgoingActive === true}}" select="selectOutgoing(facet.item.getPath())">\t\t\t\t\t -->\n' + '<!-- \t\t\t\t<div ng-repeat="dirset in [facet.outgoing]" ng-include="\'template/facet-tree/facet-dir-content.html\'"></div> -->\n' + '<!-- \t\t\t</tab> -->\n' + '\t\t</tabset>\n' + '\t</div>\n' + '</div>\n' + '');
+  }
+]);
+angular.module('template/facet-value-list/facet-value-list.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/facet-value-list/facet-value-list.html', '<div class="frame">\n' + '\t<form ng-submit="filterTable(filterText)">\n' + '\t    <input type="text" ng-model="filterText" />\n' + '\t\t<input class="btn-primary" type="submit" value="Filter" />\n' + '\t</form>\n' + '\t<table>\n' + '              <tr><th>Value</th><th>Constrained</th></tr>\n' + '<!-- <th>Count</th> -->\n' + '\t    <tr ng-repeat="item in facetValues">\n' + '                  <td>{{item.displayLabel}}</td>\n' + '<!--                    <td>todo</td> -->\n' + '                  <td><input type="checkbox" ng-model="item.tags.isConstrainedEqual" ng-change="toggleConstraint(item)" /></td>\n' + '              </tr>\n' + '      \t</table>\n' + '  \t\t<pagination class="pagination-small" total-items="pagination.totalItems" page="pagination.currentPage" max-size="pagination.maxSize" boundary-links="true" rotate="false" num-pages="pagination.numPages"></pagination>\n' + '</div>\n' + '');
+  }
+]);
+angular.module('template/sparql-table/sparql-table.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/sparql-table/sparql-table.html', '<div>\n' + '<div ng-grid="gridOptions"></div>\n' + '</div>\n' + '');
+  }
+]);
+angular.module('template/template-list/template-list.html', []).run([
+  '$templateCache',
+  function ($templateCache) {
+    $templateCache.put('template/template-list/template-list.html', '<ul ng-show="templates.length > 0">\n' + '</ul>');
+  }
+]);
+/*
+ * jassa-ui-angular
+ * https://github.com/GeoKnow/Jassa-UI-Angular
+
+ * Version: 0.0.3-SNAPSHOT - 2014-05-21
  * License: MIT
  */
 angular.module('ui.jassa.openlayers', [

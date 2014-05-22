@@ -9,20 +9,121 @@ Prefix owl: <http://www.w3.org/2002/07/owl#>
 
 Prefix dcat: <http://www.w3.org/ns/dcat#>
 
+/*
+This view would be a test case for incorrect RDB2RDF mapping: the labels are duplicated if multiple datasets use the same group id
+
 Create View dataset As
   Construct {
     ?s
       a dcat:Dataset ;
-      rdfs:label ?l ;      
+      rdfs:label ?l ;
+      o:groupId ?g ;
+      o:artifactId ?a ;
+      o:version ?v ;      
+      .
+      
+    ?g rdfs:label ?gl .
+    ?a rdfs:label ?al .
+    ?v rdfs:label ?vl .    
+  }
+  With
+    ?s = uri(r:, 'dataset', ?id)
+    ?l = plainLiteral(?name)
+
+    ?g = uri(r:, 'groupId-', ?groupid)
+    ?a = uri(r:, 'artifactId-', ?artifactid)
+    ?v = uri(r:, 'version-', ?version)
+
+    ?gl = plainLiteral(?groupid)
+    ?al = plainLiteral(?artifactid)
+    ?vl = plainLiteral(?version)
+
+  From
+    [[SELECT *, CONCAT(groupid, ':', artifactid, ':', version) AS name FROM dataset]]
+*/
+
+
+// NOTE: A view definition with just the plain table enables inverse-mapping of view definitions!
+Create View dataset As
+  Construct {
+    ?s
+      a dcat:Dataset ;
+      o:groupId ?g ;
+      o:artifactId ?a ;
+      o:version ?v ;
+      o:owner ?o ;
+      .
+  }
+  With
+    ?s = uri(r:, 'dataset', ?id)
+    ?g = uri(r:, 'groupId-', ?groupid)
+    ?a = uri(r:, 'artifactId-', ?artifactid)
+    ?v = uri(r:, 'version-', ?version)
+    ?o = uri(r:, 'user', ?owner_id)
+  From
+    dataset
+
+
+Create View dataset_labels As
+  Construct {
+    ?s
+      rdfs:label ?l ;
       .
   }
   With
     ?s = uri(r:, 'dataset', ?id)
     ?l = plainLiteral(?name)
   From
-    dataset
+    [[SELECT id, CONCAT(groupid, ':', artifactid, ':', version) AS name FROM dataset]]
 
-    
+
+Create View users As
+  Construct {
+    ?s
+      a o:User ;
+      rdfs:label ?l ;
+    .
+  }
+  With
+    ?s = uri(r:, 'user', ?id)
+    ?l = plainLiteral(?username)
+  From
+    userinfo
+
+
+// NOTE we need to ensure labels are unique...
+Create View groupLabels As
+  Construct {
+    ?s rdfs:label ?l ;
+  }
+  With
+    ?s = uri(r:, 'groupId-', ?groupid)
+    ?l = plainLiteral(?groupid) 
+  From
+    [[SELECT DISTINCT groupid FROM dataset]]
+
+
+Create View artifactLabels As
+  Construct {
+    ?s rdfs:label ?l ;
+  }
+  With
+    ?s = uri(r:, 'artifactId-', ?artifactid)
+    ?l = plainLiteral(?artifactid) 
+  From
+    [[SELECT DISTINCT artifactid FROM dataset]]
+
+
+Create View versionLabels As
+  Construct {
+    ?s rdfs:label ?l ;
+  }
+  With
+    ?s = uri(r:, 'version-', ?version)
+    ?l = plainLiteral(?version) 
+  From
+    [[SELECT DISTINCT version FROM dataset]]
+
 
 Create View dataset_download_seq As
   Construct {

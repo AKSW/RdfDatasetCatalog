@@ -1,11 +1,13 @@
 package org.aksw.rdf_dataset_catalog.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -14,6 +16,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 
 
 @Entity
@@ -28,15 +31,21 @@ public class Dataset
 	// We need to be able to say: This dataset record originates from some other service - so we need a provenance record
 
 	//private Group group;
-	
+
+    // Version should follow the maven format
+    //@Column(nullable=false)
+    //private String namespace;
+
+    @Column(nullable=false)
+    private String groupId;
+
 	// The combination of namespace, name version must be unique (i.e. each dataset record resides in a user space)
 	@Column(nullable=false)
-	private String name;
-
+	private String artifactId;
+	
 	// Version should follow the maven format
 	@Column(nullable=false)
 	private String version;
-	
 	
 	
 	// The basic comment associated with the dataset
@@ -48,19 +57,23 @@ public class Dataset
 
 	
 	// TODO Ensure that persisting a dataset object cannot create a new user.
-	@ManyToOne(optional=false, cascade=CascadeType.REFRESH)
+	@ManyToOne(optional=false, cascade=CascadeType.REFRESH, fetch=FetchType.EAGER)
 	private UserInfo owner;
 
 
 	
     //@ElementCollection
     //@OrderColumn(name="sequence_id")
-	@OneToMany(cascade=CascadeType.ALL, mappedBy="dataset")
+	@OneToMany(cascade=CascadeType.ALL, mappedBy="dataset", fetch=FetchType.EAGER)
 	@OrderBy
 	@OrderColumn(name="sequence_id")
-	private List<SparqlLocation> sparqlEndpoints;
+	private List<SparqlLocation> sparqlEndpoints = new ArrayList<SparqlLocation>();
+
 
 	@PrePersist
+//	@PostConstruct
+	@PreUpdate
+//	@PostLoad
 	public void updateChildren() {
 	    for(SparqlLocation item : sparqlEndpoints) {
 	        item.setDataset(this);
@@ -71,13 +84,13 @@ public class Dataset
     //@OneToMany(cascade=CascadeType.ALL)
 	//private List<DownloadLocation> downloadLocations;
 	
-	@ElementCollection
+	@ElementCollection(fetch=FetchType.EAGER)
 	@OrderColumn(name="sequence_id")
 	@Column(name="url")
-	private List<String> downloadLocations;
+	private List<String> downloadLocations = new ArrayList<String>();
     
     //@OneToMany(cascade=CascadeType.ALL)
-	@ElementCollection
+	@ElementCollection(fetch=FetchType.EAGER)
 	@OrderColumn
     private List<DatasetRelation> relations;
 
@@ -89,16 +102,6 @@ public class Dataset
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-
-    public String getName() {
-        return name;
-    }
-
-
-    public void setname(String name) {
-        this.name = name;
     }
 
 
@@ -162,17 +165,49 @@ public class Dataset
     }
 
 
+    public String getVersion() {
+        return version;
+    }
+
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+
+    public String getArtifactId() {
+        return artifactId;
+    }
+
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
-        int result = super.hashCode();
+        int result = 1;
+        result = prime * result
+                + ((artifactId == null) ? 0 : artifactId.hashCode());
         result = prime * result + ((comment == null) ? 0 : comment.hashCode());
         result = prime
                 * result
                 + ((downloadLocations == null) ? 0 : downloadLocations
                         .hashCode());
+        result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((owner == null) ? 0 : owner.hashCode());
         result = prime * result
                 + ((primaryIri == null) ? 0 : primaryIri.hashCode());
@@ -180,6 +215,7 @@ public class Dataset
                 + ((relations == null) ? 0 : relations.hashCode());
         result = prime * result
                 + ((sparqlEndpoints == null) ? 0 : sparqlEndpoints.hashCode());
+        result = prime * result + ((version == null) ? 0 : version.hashCode());
         return result;
     }
 
@@ -188,11 +224,16 @@ public class Dataset
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (!super.equals(obj))
+        if (obj == null)
             return false;
         if (getClass() != obj.getClass())
             return false;
         Dataset other = (Dataset) obj;
+        if (artifactId == null) {
+            if (other.artifactId != null)
+                return false;
+        } else if (!artifactId.equals(other.artifactId))
+            return false;
         if (comment == null) {
             if (other.comment != null)
                 return false;
@@ -203,15 +244,15 @@ public class Dataset
                 return false;
         } else if (!downloadLocations.equals(other.downloadLocations))
             return false;
+        if (groupId == null) {
+            if (other.groupId != null)
+                return false;
+        } else if (!groupId.equals(other.groupId))
+            return false;
         if (id == null) {
             if (other.id != null)
                 return false;
         } else if (!id.equals(other.id))
-            return false;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
             return false;
         if (owner == null) {
             if (other.owner != null)
@@ -233,20 +274,25 @@ public class Dataset
                 return false;
         } else if (!sparqlEndpoints.equals(other.sparqlEndpoints))
             return false;
+        if (version == null) {
+            if (other.version != null)
+                return false;
+        } else if (!version.equals(other.version))
+            return false;
         return true;
     }
 
 
     @Override
     public String toString() {
-        return "Dataset [id=" + id + ", name=" + name + ", comment="
-                + comment + ", primaryIri=" + primaryIri + ", owner=" + owner
+        return "Dataset [id=" + id + ", groupId=" + groupId + ", artifactId="
+                + artifactId + ", version=" + version + ", comment=" + comment
+                + ", primaryIri=" + primaryIri + ", owner=" + owner
                 + ", sparqlEndpoints=" + sparqlEndpoints
                 + ", downloadLocations=" + downloadLocations + ", relations="
                 + relations + "]";
     }
-    
-	//private ContainmentList containmentList;
-    
-    
+
+
+
 }

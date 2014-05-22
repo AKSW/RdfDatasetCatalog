@@ -59,6 +59,7 @@ public class WebAppInitializer
 		datastoreServlet.setInitParameter("com.sun.jersey.config.property.packages", "org.aksw.rdf_dataset_catalog.web.api");
 		//ServletRegistration.Dynamic jassaServlet = servletContext.addServlet("jassa-servlet", new DispatcherServlet(dispatcherContext));
 		datastoreServlet.addMapping("/api/*");
+		//datastoreServlet.addMapping("/*");
 		datastoreServlet.setLoadOnStartup(1);
 
 //		ServletRegistration.Dynamic facete2Servlet = servletContext.addServlet("facete2-servlet", new SpringServlet());

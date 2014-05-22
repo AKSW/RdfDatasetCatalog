@@ -9,8 +9,17 @@ import javax.sql.DataSource;
 
 import org.aksw.jena_sparql_api.core.QueryExecutionFactory;
 import org.aksw.sparqlify.config.syntax.Config;
+import org.aksw.sparqlify.core.algorithms.CandidateViewSelectorImpl;
+import org.aksw.sparqlify.core.interfaces.SparqlSqlOpRewriterImpl;
+import org.aksw.sparqlify.core.interfaces.SqlTranslator;
+import org.aksw.sparqlify.inverse.SparqlSqlInverseMapper;
+import org.aksw.sparqlify.inverse.SparqlSqlInverseMapperImpl;
+import org.aksw.sparqlify.jpa.EntityInverseMapper;
+import org.aksw.sparqlify.jpa.EntityInverseMapperImplHibernate;
 import org.aksw.sparqlify.util.SparqlifyUtils;
 import org.aksw.sparqlify.validation.LoggerCount;
+import org.hibernate.SessionFactory;
+import org.hibernate.ejb.HibernateEntityManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
@@ -142,47 +151,47 @@ public class AppConfigHibernate
 	}
 
 	
-//	@Bean
-//	public SparqlSqlInverseMapper sparqlSqlInverseMapper(CandidateViewSelectorImpl candidateViewSelector, SqlTranslator sqlTranslator) {
-//		SparqlSqlInverseMapper result = new SparqlSqlInverseMapperImpl(candidateViewSelector, sqlTranslator);
-//		
-//		return result;
-//	}
-//	
-//	@Bean
-//	public EntityInverseMapper entityInverseMapper(SessionFactory sessionFactory, SparqlSqlInverseMapper inverseMapper) {
-//		EntityInverseMapperImplHibernate result = EntityInverseMapperImplHibernate.create(inverseMapper, sessionFactory);
-//		return result;
-//	}
-//
-//	@Bean
-//	public SessionFactory sessionFactory(JpaTransactionManager txManager) {
-//		EntityManagerFactory emf = txManager.getEntityManagerFactory();
-//		SessionFactory result = ((HibernateEntityManagerFactory)emf).getSessionFactory();
-//		return result;
-//	}
+	@Bean
+	public SparqlSqlInverseMapper sparqlSqlInverseMapper(CandidateViewSelectorImpl candidateViewSelector, SqlTranslator sqlTranslator) {
+		SparqlSqlInverseMapper result = new SparqlSqlInverseMapperImpl(candidateViewSelector, sqlTranslator);
+		
+		return result;
+	}
+	
+	@Bean
+	public EntityInverseMapper entityInverseMapper(SessionFactory sessionFactory, SparqlSqlInverseMapper inverseMapper) {
+		EntityInverseMapperImplHibernate result = EntityInverseMapperImplHibernate.create(inverseMapper, sessionFactory);
+		return result;
+	}
+
+	@Bean
+	public SessionFactory sessionFactory(JpaTransactionManager txManager) {
+		EntityManagerFactory emf = txManager.getEntityManagerFactory();
+		SessionFactory result = ((HibernateEntityManagerFactory)emf).getSessionFactory();
+		return result;
+	}
 
 	
 	// TODO Possibly replace this ugly unwrapping by creating the Sparqlify Query Execution
 	// in spring bean style
-//	
-//	@Bean
-//	public SparqlSqlOpRewriterImpl sparqlSqlOpRewriter(QueryExecutionFactory qef) {
-//		SparqlSqlOpRewriterImpl result = SparqlifyUtils.unwrapOpRewriter(qef);
-//		return result;
-//	}
-//
-//	@Bean
-//	public SqlTranslator sqlTranslator(SparqlSqlOpRewriterImpl opRewriter) {
-//		SqlTranslator result = SparqlifyUtils.unwrapSqlTransformer(opRewriter);
-//		return result;
-//	}
-//
-//	@Bean
-//	public CandidateViewSelectorImpl candidateViewSelector(SparqlSqlOpRewriterImpl opRewriter) {
-//		CandidateViewSelectorImpl result = SparqlifyUtils.unwrapCandidateViewSelector(opRewriter);
-//		return result;
-//	}
+	
+	@Bean
+	public SparqlSqlOpRewriterImpl sparqlSqlOpRewriter(QueryExecutionFactory qef) {
+		SparqlSqlOpRewriterImpl result = SparqlifyUtils.unwrapOpRewriter(qef);
+		return result;
+	}
+
+	@Bean
+	public SqlTranslator sqlTranslator(SparqlSqlOpRewriterImpl opRewriter) {
+		SqlTranslator result = SparqlifyUtils.unwrapSqlTransformer(opRewriter);
+		return result;
+	}
+
+	@Bean
+	public CandidateViewSelectorImpl candidateViewSelector(SparqlSqlOpRewriterImpl opRewriter) {
+		CandidateViewSelectorImpl result = SparqlifyUtils.unwrapCandidateViewSelector(opRewriter);
+		return result;
+	}
 	
 
 }

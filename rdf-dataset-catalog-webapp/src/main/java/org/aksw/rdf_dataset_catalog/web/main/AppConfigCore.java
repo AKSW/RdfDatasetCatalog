@@ -1,10 +1,20 @@
 package org.aksw.rdf_dataset_catalog.web.main;
 
+import org.aksw.rdf_dataset_catalog.model.SparqlLocation;
+import org.hibernate.collection.internal.PersistentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 @Configuration
 @ComponentScan({"org.aksw.rdf_dataset_catalog.web"})
@@ -19,6 +29,28 @@ public class AppConfigCore {
     @javax.annotation.Resource
     private Environment env;
     
+    
+    @Bean
+    public Gson gson() {
+        Multimap<Class<?>, String> classToFieldName = HashMultimap.create();
+        classToFieldName.put(UserDetails.class, "password");
+        classToFieldName.put(UserDetails.class, "email");
+        
+        classToFieldName.put(SparqlLocation.class, "id");
+        classToFieldName.put(SparqlLocation.class, "dataset");
+        
+        ExclusionStrategy strategy = new ExclusionStrategyClassAndFields(classToFieldName);
+        
+        GsonBuilder builder = new GsonBuilder();
+        //builder.registerTypeHierarchyAdapter(PersistentList.class, new TypeAdapterList());
+        //builder.registerTypeAdapterFactory(TypeAdapterList.FACTORY);
+        //builder.registerTypeHierarchyAdapter(PersistentList.class, new JsonSerializerPersistentList());
+        builder.addSerializationExclusionStrategy(strategy);
+        
+        Gson result = builder.create();
+        return result;
+    }
+        
     /*
     @Bean
     public StreamSink sparqlExportSink() {

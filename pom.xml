@@ -38,7 +38,7 @@
 		<!-- facete2 only works with jena-sparql-api version 2.10.0-27 and onwards -->
 		<jena-sparql-api.version>2.11.1-44</jena-sparql-api.version>
 		<jassa.version>0.0.4</jassa.version>
-		<sparqlify.version>0.6.8</sparqlify.version>
+		<sparqlify.version>0.6.9-SNAPSHOT</sparqlify.version>
 
 		<spring.version>3.2.8.RELEASE</spring.version>
         <spring.batch.version>2.2.5.RELEASE</spring.batch.version>
@@ -59,6 +59,7 @@
 
     <modules>
         <module>rdf-dataset-catalog-core</module>
+	<module>rdf-dataset-catalog-webapp</module>
     </modules>
 
     <build>
@@ -174,7 +175,7 @@
 			<dependency>
 				<groupId>org.aksw.sparqlify</groupId>
 				<artifactId>sparqlify-core</artifactId>
-				<version>0.6.8</version>
+				<version>${sparqlify.version}</version>
 			</dependency>
 
 
