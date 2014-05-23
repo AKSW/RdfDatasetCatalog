@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.aksw.rdf-dataset-catalog</groupId>
-    <artifactId>rdf-dataset-catalog-parent</artifactId>
+    <groupId>org.aksw.datacat</groupId>
+    <artifactId>datacat-parent</artifactId>
     <packaging>pom</packaging>
     <version>0.0.1-SNAPSHOT</version>
     <name>RDF Dataset Catalog - Parent</name>
@@ -58,8 +58,10 @@
     </properties>
 
     <modules>
-        <module>rdf-dataset-catalog-core</module>
-	<module>rdf-dataset-catalog-webapp</module>
+        <module>datacat-core</module>
+	<module>datacat-webapp</module>
+	<module>datacat-tomcat-common</module>
+	<module>datacat-tomcat7</module>
     </modules>
 
     <build>
@@ -123,6 +125,12 @@
     <dependencyManagement>
         <dependencies>
 			<!-- Self dependencies -->
+		<dependency>
+			<groupId>org.aksw.datacat</groupId>
+			<artifactId>datacat-webapp</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
 <!-- 			<dependency> -->
 <!-- 				<groupId>org.aksw.facete2</groupId> -->
 <!-- 				<artifactId>facete2-webapp</artifactId> -->
