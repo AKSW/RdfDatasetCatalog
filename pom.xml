@@ -60,8 +60,8 @@
     <modules>
         <module>datacat-core</module>
 	<module>datacat-webapp</module>
-	<module>datacat-tomcat-common</module>
-	<module>datacat-tomcat7</module>
+	<module>datacat-debian-tomcat-common</module>
+	<module>datacat-debian-tomcat7</module>
     </modules>
 
     <build>

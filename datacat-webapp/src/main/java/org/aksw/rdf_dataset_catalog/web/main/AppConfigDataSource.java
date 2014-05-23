@@ -51,7 +51,7 @@ public class AppConfigDataSource {
 
         DataSource dsBean = null;
 
-        String jndiName = "java:comp/env/jdbc/rdfDataCatalog/dataSource";
+        String jndiName = "java:comp/env/jdbc/datacat/dataSource";
         try {
             Context ctx = new InitialContext();
             dsBean = (DataSource) ctx.lookup(jndiName);
