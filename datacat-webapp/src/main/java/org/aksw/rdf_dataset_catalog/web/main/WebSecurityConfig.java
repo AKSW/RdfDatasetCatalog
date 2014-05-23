@@ -2,7 +2,6 @@ package org.aksw.rdf_dataset_catalog.web.main;
 
 import javax.annotation.Resource;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -26,18 +25,16 @@ public class WebSecurityConfig
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(); 
+        
+        return passwordEncoder;
     }
     
     
-    @Autowired
-    //@DependsOn("passwordEncoder")
-    private PasswordEncoder passwordEncoder;
-    
     @Override
-    @Autowired
+    //@Autowired
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
+        auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
     }
     
 //    @Autowired
@@ -56,7 +53,8 @@ public class WebSecurityConfig
     @Bean(name="authenticationManager")
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+        AuthenticationManager authenticationManager = super.authenticationManagerBean();
+        return authenticationManager;
     }
     
     @Override
