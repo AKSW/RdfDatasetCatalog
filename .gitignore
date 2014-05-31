@@ -6,6 +6,7 @@
 target
 
 cache
+dist
 
 *.jar
 *.toc

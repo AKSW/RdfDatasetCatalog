@@ -21,11 +21,13 @@
 <urlrewrite>
 
 	<rule>
+	    <condition type="method">GET</condition>
 		<from>^(.*)/sparql$</from>
 		<to type="temporary-redirect">%{context-path}$1/sparql/$2?%{query-string}</to>
 	</rule>
 
 	<rule>
+        <condition type="method">GET</condition>
 <!-- 		<from>^(.*)/sparql/(?!namespaces)(.*\.(css|js|png))$</from> -->
         <from>^(.*)/sparql/(.*\.(css|js|png))$</from>
 		<to type="temporary-redirect">%{context-path}/resources/snorql/$2</to>

@@ -9,6 +9,26 @@ Prefix owl: <http://www.w3.org/2002/07/owl#>
 
 Prefix dcat: <http://www.w3.org/ns/dcat#>
 
+
+// Note: This should better go into the database for better performance
+Create View ontology As
+  Construct{
+    rdf:type a rdf:Property .
+    rdfs:label a rdf:Property .
+
+    o:groupId a rdf:Property .
+    o:artifactId a rdf:Property .
+    o:version a rdf:Property .
+    
+    o:owner a rdf:Property .
+    o:hasDownloads a rdf:Property .
+    o:hasEndpoints a rdf:Property .
+    o:url a rdf:Property .
+    o:hasDefaultGraphs a rdf:Property .
+  }
+
+
+
 /*
 This view would be a test case for incorrect RDB2RDF mapping: the labels are duplicated if multiple datasets use the same group id
 

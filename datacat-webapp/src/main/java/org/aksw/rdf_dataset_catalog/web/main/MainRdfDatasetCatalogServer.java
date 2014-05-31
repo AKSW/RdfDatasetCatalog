@@ -20,6 +20,7 @@ import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -75,8 +76,8 @@ public class MainRdfDatasetCatalogServer {
 //		DataSource dataSource = SparqlifyCliHelper.parseDataSource(commandLine, logger);
 //		Integer port = SparqlifyCliHelper.parseInt(commandLine, "P", false, loggerCount);
 		
-		Integer port = null; // TODO parse
-		port = (port == null) ? 7532 : port;
+		String portStr = commandLine.getOptionValue("P");
+		Integer port = (StringUtils.isEmpty(portStr)) ? 7532 : Integer.parseInt(portStr);
 		
 		
 		ProtectionDomain protectionDomain = MainRdfDatasetCatalogServer.class.getProtectionDomain();
