@@ -39,3 +39,6 @@ dependency-tree.txt
 release.properties
 pom.xml.releaseBackup
 
+datacat-core/bin/
+datacat-webapp/bin/
+
