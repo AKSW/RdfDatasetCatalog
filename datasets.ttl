@@ -137,6 +137,7 @@ dist:org.cstadler_freebase-germany-join-summary_2013_1
 
 data:org.aksw.cordis_fp7-ict-research-projects_2014
     a dcat:Dataset ;
+    dcat:theme theme:primary ;
     o:group "org.aksw.cordis" ;
     o:artifact "fp7-ict-research-projects" ;
     o:version "2014" ;
@@ -151,5 +152,52 @@ dist:org.aksw.cordis_fp7-ict-research-projects_2014_1
     o:distributionOf data:org.aksw.cordis_fp7-ict-research-projects_2014 ;
     dcat:accessURL <http://fp7-pp.publicdata.eu/sparql> ;
     o:graph <http://fp7-pp.publicdata.eu/> ;
+    .
+
+
+data:org.panlex_panlex-rdf_2014
+    a dcat:Dataset ;
+    dcat:theme theme:primary ;
+    o:group "org.panlex" ;
+    o:artifact "panlex-rdf" ;
+    o:version "2014" ;
+    rdfs:label "The PanLex dataset" ;
+    rdfs:comment "A dataset comprised of lots of of linguistic resource featuring lexical translations for thousands of languages" ;
+    foaf:depiction <http://panlex.org/logo.png> ;
+    .
+
+dist:org.panlex_panlex-rdf_2014_1
+    a dcat:Distribution ;
+    o:priority 1 ;
+    o:distributionOf data:org.panlex_panlex-rdf_2014 ;
+    dcat:accessURL <http://ld.panlex.org/sparql> ;
+    o:graph <http://ld.panlex.org/> ;
+    .
+
+dist:org.panlex_panlex-rdf_2014_sparqlify
+    a dcat:Distribution ;
+    rdfs:label "A distribution of the PanLex dataset via Sparqlify" ;
+    o:priority 2 ;
+    o:distributionOf data:org.panlex_panlex-rdf_2014 ;
+    dcat:accessURL <http://ld.panlex.org/vsparql> ;
+    .
+
+data:org.lexvo_lexvo_2013-02-09
+    a dcat:Dataset ;
+    dcat:theme theme:primary ;
+    o:group "org.lexvo" ;
+    o:artifact "lexvo" ;
+    o:version "2013-02-09" ;
+    rdfs:label "The lexvo dataset" ;
+    rdfs:comment "Lexvo.org brings information about languages, words, characters, and other human language-related entities to the Linked Data Web and Semantic Web." ;
+    foaf:depiction <http://www.lexvo.org/lexvo-tr.png> ;
+    .
+
+dist:org.lexvo_lexvo_2013-02-09
+    a dcat:Distribution ;
+    o:priority 1 ;
+    o:distributionOf data:org.lexvo_lexvo_2013-02-09 ;
+    dcat:accessURL <http://cstadler.aksw.org/sparql> ;
+    o:graph data:org.lexvo_lexvo_2013-02-09 ;
     .
 
