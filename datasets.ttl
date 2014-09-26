@@ -135,6 +135,48 @@ dist:org.cstadler_freebase-germany-join-summary_2013_1
 
 
 
+data:org.aksw.freebase_freebase-germany-prioritized_2013
+    a dcat:Dataset ;
+    dcat:theme theme:primary ;
+    o:group "org.aksw.freebase" ;
+    o:artifact "freebase-germany" ;
+    o:version "2013" ;
+    rdfs:label "Freebase Germany 2013 with prioritized properties" ;
+    rdfs:comment "A subset of Freebase about points of interests in Germany with proritized properties" ;
+    foaf:depiction <http://ganbox.com/blog/wp-content/pub/freebase.png> ;
+    .
+
+dist:org.aksw.freebase_freebase-germany-prioritized_2013_1
+    a dcat:Distribution ;
+    o:priority 1 ;
+    o:distributionOf data:org.aksw.freebase_freebase-germany-prioritized_2013 ;
+    dcat:accessURL <http://cstadler.aksw.org/conti/freebase/germany/prioritized/sparql> ;
+    o:graph <http://freebase.com/2013-09-22/data/prioritized/> ;
+    .
+
+
+data:org.cstadler_freebase-germany-prioritized-join-summary_2013
+    a dcat:Dataset ;
+    dcat:theme theme:joinSummary ;
+    o:group "org.cstadler" ;
+    o:artifact "freebase-germany-join-summary" ;
+    o:version "2013" ;
+    o:joinSummaryOf data:org.aksw.freebase_freebase-germany-join-summary_2013 ;
+    rdfs:label "Freebase Germany Join Summary for prioritized properties 2013" ;
+    rdfs:comment "A simple join summary for the Freebase Germany 2013 dataset" ;
+    .
+
+dist:org.cstadler_freebase-germany-prioritized-join-summary_2013_1
+    a dcat:Distribution ;
+    o:priority 1 ;
+    o:distributionOf data:org.cstadler_freebase-germany-prioritized-join-summary_2013 ;
+    dcat:accessURL <http://cstadler.aksw.org/service/join-summary/sparql> ;
+    o:graph <http://freebase.com/2013-09-22/join-summary/prioritized/> ;
+    .
+
+
+
+
 data:org.aksw.cordis_fp7-ict-research-projects_2014
     a dcat:Dataset ;
     dcat:theme theme:primary ;
