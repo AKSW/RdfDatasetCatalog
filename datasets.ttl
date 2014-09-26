@@ -161,7 +161,7 @@ data:org.cstadler_freebase-germany-prioritized-join-summary_2013
     o:group "org.cstadler" ;
     o:artifact "freebase-germany-join-summary" ;
     o:version "2013" ;
-    o:joinSummaryOf data:org.aksw.freebase_freebase-germany-join-summary_2013 ;
+    o:joinSummaryOf data:org.aksw.freebase_freebase-germany-prioritized_2013 ;
     rdfs:label "Freebase Germany Join Summary for prioritized properties 2013" ;
     rdfs:comment "A simple join summary for the Freebase Germany 2013 dataset" ;
     .
@@ -170,8 +170,8 @@ dist:org.cstadler_freebase-germany-prioritized-join-summary_2013_1
     a dcat:Distribution ;
     o:priority 1 ;
     o:distributionOf data:org.cstadler_freebase-germany-prioritized-join-summary_2013 ;
-    dcat:accessURL <http://cstadler.aksw.org/service/join-summary/sparql> ;
-    o:graph <http://freebase.com/2013-09-22/join-summary/prioritized/> ;
+    dcat:accessURL <http://cstadler.aksw.org/conti/freebase/germany/prioritized/sparql> ;
+    o:graph <http://freebase.com/2013-09-22/join-summary/germany/prioritized/> ;
     .
 
 
