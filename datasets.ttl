@@ -151,7 +151,7 @@ dist:org.aksw.freebase_freebase-germany-prioritized_2013_1
     o:priority 1 ;
     o:distributionOf data:org.aksw.freebase_freebase-germany-prioritized_2013 ;
     dcat:accessURL <http://cstadler.aksw.org/conti/freebase/germany/prioritized/sparql> ;
-    o:graph <http://freebase.com/2013-09-22/data/prioritized/> ;
+    o:graph <http://freebase.com/2013-09-22/data/germany/prioritized/> ;
     .
 
 
