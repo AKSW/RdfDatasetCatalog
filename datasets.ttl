@@ -243,3 +243,23 @@ dist:org.lexvo_lexvo_2013-02-09
     o:graph data:org.lexvo_lexvo_2013-02-09 ;
     .
 
+data:org.aksw.linked-spending_linked-spending_2015
+    a dcat:Dataset ;
+    dcat:theme theme:primary ;
+    o:group "org.aksw.linked-spending" ;
+    o:artifact "linked-spending" ;
+    o:version "2015" ;
+    rdfs:label "Linked Spending" ;
+    rdfs:comment "LinkedSpending contains government spendings from all over the world as Linked Data." ;
+    foaf:depiction <http://linkedspending.aksw.org/extensions/themes/bluewhite/images/logo-ontowiki.png> ;
+    .
+
+dist:org.aksw.linked-spending_linked-spending_2015_1
+    a dcat:Distribution ;
+    o:priority 1 ;
+    o:distributionOf data:org.aksw.linked-spending_linked-spending_2015 ;
+    dcat:accessURL <http://linkedspending.aksw.org/sparql> ;
+    o:graph <http://linkedspending.aksw.org/> ;
+    .
+
+
